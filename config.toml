@@ -1,0 +1,33 @@
+# Toute la configuration du pipeline. Aucune option en ligne de commande.
+# Les secrets (LLM_API_KEY) restent dans .env.
+
+source_dir  = "samples"
+build_dir   = "build"
+out_dir     = "out"
+lang        = "fr"
+system_name = "Système bancaire (à nommer)"
+
+# Formats traités (extensions sans le point).
+formats = ["docx", "xlsx", "pptx", "pdf"]
+
+# Étapes exécutées, dans l'ordre. Retirer une étape pour la sauter :
+# chaque étape lit/écrit un artefact dans build/, donc rejouable seule
+# (ex. stages = ["extract", "reconcile", "render"] pour itérer sans re-convertir).
+stages = ["ingest", "chunk", "extract", "reconcile", "render"]
+
+[llm]
+base_url = "https://openrouter.ai/api/v1"
+model = "anthropic/claude-3.5-haiku"   # test ; en prod : endpoint OpenAI-compatible du modèle <=30B
+max_context_tokens = 32000             # 256k annoncé, on reste conservateur
+max_retries = 3
+temperature = 0.0
+
+[vlm]
+enabled = true
+model = "anthropic/claude-3.5-haiku"   # test ; en prod : Qwen2.5-VL-32B ou équivalent <=30B
+prompt = "Décris ce diagramme de base de données : entités/tables, attributs lisibles, relations (cardinalités, clés étrangères). N'invente rien ; si c'est illisible, indique-le."
+
+[chunk]
+max_chars = 12000
+overlap_chars = 400
+min_chars = 200

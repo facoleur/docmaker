@@ -1,0 +1,33 @@
+---
+title: "Index — {{ system }}"
+doc_type: index
+generated_at: "{{ today }}"
+review_status: needs_review
+---
+
+# Documentation — {{ system }}
+
+> Généré automatiquement à partir de sources hétérogènes.
+> **Chaque page doit être relue par un expert métier avant usage.**
+
+## Tables ({{ model.entities | length }})
+
+{% for e in model.entities %}
+- [`{{ e.name }}`](tables/{{ e.name | slug }}.md) — {{ e.columns | length }} colonne(s), {{ e.source_refs | length }} source(s)
+{% endfor %}
+
+## Relations ({{ model.relations | length }})
+
+{% for r in model.relations %}
+- `{{ r.from_table }}` → `{{ r.to_table }}`{% if r.cardinality %} — {{ r.cardinality }}{% endif %}{% if r.kind %} _({{ r.kind }})_{% endif %}
+{% endfor %}
+
+## Divergences détectées ({{ model.conflicts | length }})
+
+{% if model.conflicts %}
+{% for c in model.conflicts %}
+- **{{ c.entity }}.{{ c.field }}** : {{ c.values | map(attribute='value') | join(' | ') }}
+{% endfor %}
+{% else %}
+Aucune.
+{% endif %}

@@ -1,0 +1,59 @@
+---
+id: "table/{{ e.name | slug }}"
+title: "{{ e.name }}"
+doc_type: table_reference
+system: "{{ system }}"
+domain: banking
+entities:
+  - "{{ e.name }}"
+{% if e.source_refs %}
+sources:
+{% for r in e.source_refs %}
+  - "{{ r.file }}{% if r.locator %}#{{ r.locator }}{% endif %}"
+{% endfor %}
+{% else %}
+sources: []
+{% endif %}
+generated_by: "{{ model }}"
+generated_at: "{{ today }}"
+review_status: needs_review
+confidence: {% if conflicts %}low{% else %}medium{% endif %}
+
+{% if conflicts %}
+conflicts:
+{% for c in conflicts %}
+  - "{{ c.entity }}.{{ c.field }}: {{ c.values | map(attribute='value') | join(' | ') }}"
+{% endfor %}
+{% endif %}
+---
+
+# {{ e.name }}
+
+{{ overview or e.description or "_Aucune description disponible dans les sources._" }}
+
+## Colonnes
+
+| Colonne | Type | Nullable | Clé | Description |
+|---|---|---|---|---|
+{% for col in e.columns %}
+| `{{ col.name }}` | {{ col.type or "?" }} | {{ "?" if col.nullable is none else ("oui" if col.nullable else "non") }} | {{ col.key or "" }} | {{ col.description or "" }} |
+{% endfor %}
+
+{% if conflicts %}
+## Divergences entre sources
+
+{% for c in conflicts %}
+- **{{ c.entity }}.{{ c.field }}**
+{% for v in c.values %}
+  - `{{ v.value }}` — {{ v.source or "source ?" }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+## Sources
+
+{% for r in e.source_refs %}
+- {{ r.file }} — {{ r.locator or "(document)" }}
+{% else %}
+- _aucune source tracée_
+{% endfor %}

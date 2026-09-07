@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+build/
+out/
+samples/*
+!samples/.gitkeep
+.pytest_cache/
+.ruff_cache/
+dist/
