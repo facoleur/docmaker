@@ -6,7 +6,7 @@ import logging
 
 from rich.logging import RichHandler
 
-from .config import Settings
+from .config import load_settings
 from .pipeline import run
 
 
@@ -17,7 +17,7 @@ def main() -> None:
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
     )
-    settings = Settings()
+    settings = load_settings()
     log = logging.getLogger("docmaker")
     log.info(
         "source=%s | stages=%s | llm=%s | vlm=%s",

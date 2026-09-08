@@ -3,8 +3,6 @@
 Pas de tokenizer ni de HybridChunker docling en v1 : découpe purement structurelle.
 """
 
-from __future__ import annotations
-
 import logging
 import re
 from collections.abc import Iterator
@@ -60,22 +58,26 @@ def _sections(text: str) -> Iterator[tuple[str, str, int]]:
         yield path, "".join(buf), start
 
 
-def _split(
-    doc: str, heading_path: str, body: str, start: int, cfg: ChunkConfig
-) -> list[Chunk]:
+def _split(doc: str, heading_path: str, body: str, start: int, cfg: ChunkConfig) -> list[Chunk]:
     body = body.strip("\n")
-    if len(body) < cfg.min_chars:
+    if not body.strip():  # section vide (lignes blanches entre deux titres)
         return []
     if len(body) <= cfg.max_chars:
-        return [Chunk(doc=doc, heading_path=heading_path, text=body, start=start, end=start + len(body))]
+        return [
+            Chunk(doc=doc, heading_path=heading_path, text=body, start=start, end=start + len(body))
+        ]
 
     out: list[Chunk] = []
     step = max(1, cfg.max_chars - cfg.overlap_chars)
     for i in range(0, len(body), step):
         piece = body[i : i + cfg.max_chars]
-        if len(piece) < cfg.min_chars and out:
-            break
         out.append(
-            Chunk(doc=doc, heading_path=heading_path, text=piece, start=start + i, end=start + i + len(piece))
+            Chunk(
+                doc=doc,
+                heading_path=heading_path,
+                text=piece,
+                start=start + i,
+                end=start + i + len(piece),
+            )
         )
     return out

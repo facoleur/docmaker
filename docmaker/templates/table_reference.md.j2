@@ -3,7 +3,6 @@ id: "table/{{ e.name | slug }}"
 title: "{{ e.name }}"
 doc_type: table_reference
 system: "{{ system }}"
-domain: banking
 entities:
   - "{{ e.name }}"
 {% if e.source_refs %}
@@ -47,6 +46,14 @@ conflicts:
 {% for v in c.values %}
   - `{{ v.value }}` — {{ v.source or "source ?" }}
 {% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if notes %}
+## Notes
+
+{% for n in notes %}
+- {% if n.topic %}_{{ n.topic }}_ — {% endif %}{{ n.text }}
 {% endfor %}
 {% endif %}
 

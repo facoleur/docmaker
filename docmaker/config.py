@@ -42,7 +42,6 @@ class VLMConfig(_Table):
 class ChunkConfig(_Table):
     max_chars: int
     overlap_chars: int
-    min_chars: int
 
 
 class Settings(BaseSettings):
@@ -75,3 +74,12 @@ class Settings(BaseSettings):
     def settings_customise_sources(cls, settings_cls, env_settings, dotenv_settings, **_):
         # priorité : env > .env > config.toml
         return env_settings, dotenv_settings, TomlConfigSettingsSource(settings_cls)
+
+
+def load_settings() -> Settings:
+    """Charge la config depuis les sources (env / .env / config.toml).
+
+    `Settings()` ne prend aucun argument — les valeurs viennent des sources — mais
+    les type-checkers voient les champs requis comme des paramètres manquants.
+    """
+    return Settings()  # type: ignore[call-arg]

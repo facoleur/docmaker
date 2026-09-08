@@ -25,11 +25,11 @@ def test_going_back_up_truncates_deeper_levels():
     assert "C" in paths  # pas "A / B / C"
 
 
-def test_split_drops_tiny_sections_and_respects_max():
-    cfg = ChunkConfig(max_chars=200, overlap_chars=40, min_chars=60)
+def test_split_keeps_small_sections_and_respects_max():
+    cfg = ChunkConfig(max_chars=200, overlap_chars=40)
     chunks = [c for path, body, start in _sections(MD) for c in _split("d.md", path, body, start, cfg)]
     assert chunks
     assert all(len(c.text) <= cfg.max_chars for c in chunks)
     assert all(c.heading_path for c in chunks)
-    # "Section B" (50 chars) est sous min_chars -> ignorée
-    assert not any(c.heading_path.endswith("Section B") for c in chunks)
+    # "Section B" (50 chars) est petite mais conservée : plus de filtre min_chars
+    assert any(c.heading_path.endswith("Section B") for c in chunks)

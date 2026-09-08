@@ -74,9 +74,18 @@ class Relation(BaseModel):
     description: str = ""
 
 
+class Note(BaseModel):
+    """Fait utile hors du modèle de tables (règle, cycle de vie, rétention, glossaire…)."""
+
+    table: str = ""  # nom de la table concernée, "" si transverse
+    topic: str = ""  # mot-clé court, libre
+    text: str
+
+
 class FactSet(BaseModel):
     tables: list[Table] = Field(default_factory=list)
     relations: list[Relation] = Field(default_factory=list)
+    notes: list[Note] = Field(default_factory=list)
 
 
 class TableFacts(Table):
@@ -87,9 +96,14 @@ class RelationFacts(Relation):
     source_refs: list[SourceRef] = Field(default_factory=list)
 
 
+class NoteFacts(Note):
+    source_refs: list[SourceRef] = Field(default_factory=list)
+
+
 class Facts(BaseModel):
     tables: list[TableFacts] = Field(default_factory=list)
     relations: list[RelationFacts] = Field(default_factory=list)
+    notes: list[NoteFacts] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #
@@ -117,4 +131,5 @@ class DocModel(BaseModel):
     generated_at: datetime
     entities: list[Entity] = Field(default_factory=list)
     relations: list[RelationFacts] = Field(default_factory=list)
+    notes: list[NoteFacts] = Field(default_factory=list)
     conflicts: list[Conflict] = Field(default_factory=list)

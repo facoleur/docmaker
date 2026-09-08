@@ -38,4 +38,3 @@ prompt = "Décris ce diagramme de base de données : entités/tables, attributs 
 [chunk]
 max_chars = 12000
 overlap_chars = 400
-min_chars = 200

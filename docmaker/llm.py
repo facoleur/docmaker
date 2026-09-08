@@ -8,9 +8,13 @@ import base64
 import json
 import logging
 import re
+from typing import TYPE_CHECKING, cast
 
 from openai import OpenAI
 from pydantic import BaseModel, ValidationError
+
+if TYPE_CHECKING:
+    from openai.types.chat import ChatCompletionMessageParam
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +87,7 @@ class LLM:
     def _chat(self, messages: list[dict], model: str | None = None) -> str:
         resp = self._client.chat.completions.create(
             model=model or self._c.model,
-            messages=messages,
+            messages=cast("list[ChatCompletionMessageParam]", messages),
             temperature=self._c.temperature,
         )
         return resp.choices[0].message.content or ""

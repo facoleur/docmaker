@@ -1,4 +1,4 @@
-from docmaker.models import Column, Facts, SourceRef, TableFacts
+from docmaker.models import Column, Facts, NoteFacts, SourceRef, TableFacts
 from docmaker.pipeline.reconcile import reconcile
 
 
@@ -35,3 +35,21 @@ def test_divergent_type_and_nullable_raise_conflicts():
     fields = {(c.entity, c.field) for c in model.conflicts}
     assert ("Account.balance", "type") in fields
     assert ("Account.balance", "nullable") in fields
+
+
+def _note(table, text, ref):
+    return NoteFacts(table=table, text=text, source_refs=[SourceRef(file=ref, locator="X")])
+
+
+def test_identical_notes_merge_and_union_sources():
+    facts = Facts(
+        notes=[
+            _note("Account", "Le solde ne peut être négatif.", "a.docx"),
+            _note("account", "le solde ne peut  être négatif.", "b.xlsx"),
+            _note("Account", "Clôture après 90 jours d'inactivité.", "c.pdf"),
+        ]
+    )
+    model = reconcile(facts)
+    assert len(model.notes) == 2
+    merged = next(n for n in model.notes if "négatif" in n.text)
+    assert {r.file for r in merged.source_refs} == {"a.docx", "b.xlsx"}

@@ -4,8 +4,6 @@ Les diagrammes/images sont décrits par la VLM quand on récupère les pixels ;
 sinon comptés dans `unhandled_assets` (perte tracée, jamais silencieuse).
 """
 
-from __future__ import annotations
-
 import hashlib
 import io
 import logging
@@ -67,7 +65,9 @@ def run(settings: Settings) -> None:
                 unhandled,
             )
         except Exception as exc:  # noqa: BLE001 - docling lève des types variés
-            docs.append(SourceDoc(path=rel, fmt=fmt, sha256=sha, status="error", note=repr(exc)[:300]))
+            docs.append(
+                SourceDoc(path=rel, fmt=fmt, sha256=sha, status="error", note=repr(exc)[:300])
+            )
             log.error("échec %s : %s", rel, exc)
 
     manifest = Manifest(generated_at=datetime.now(), docs=docs)

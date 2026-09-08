@@ -1,10 +1,10 @@
 """Orchestration : suite d'étapes, chacune lit/écrit un artefact dans build/."""
 
-from __future__ import annotations
-
 import logging
 
 from ..config import Settings
+
+# from . import chunk, extract, ingest, reconcile, render
 from . import chunk, extract, ingest, reconcile, render
 
 log = logging.getLogger(__name__)

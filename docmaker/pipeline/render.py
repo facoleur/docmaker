@@ -38,15 +38,18 @@ def run(settings: Settings) -> None:
     today = date.today().isoformat()
 
     table_tpl = env.get_template("table_reference.md.j2")
+    known = {_key(e.name) for e in model.entities}
     records: list[dict] = []
     for ent in model.entities:
         conflicts = [
             c for c in model.conflicts if c.entity == ent.name or c.entity.startswith(ent.name + ".")
         ]
+        notes = [n for n in model.notes if _key(n.table) == _key(ent.name)]
         md = table_tpl.render(
             e=ent,
             overview=_overview(llm, ent),
             conflicts=conflicts,
+            notes=notes,
             system=settings.system_name,
             today=today,
             model=settings.llm.model,
@@ -64,7 +67,10 @@ def run(settings: Settings) -> None:
             }
         )
 
-    index_md = env.get_template("index.md.j2").render(model=model, system=settings.system_name, today=today)
+    general_notes = [n for n in model.notes if _key(n.table) not in known]
+    index_md = env.get_template("index.md.j2").render(
+        model=model, general_notes=general_notes, system=settings.system_name, today=today
+    )
     (out / "index.md").write_text(index_md, encoding="utf-8")
     records.append(
         {
@@ -93,3 +99,8 @@ def _overview(llm: LLM, ent: Entity) -> str:
 
 def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "entite"
+
+
+def _key(name: str) -> str:
+    """Clé de rapprochement note <-> entité (insensible casse/espaces/ponctuation)."""
+    return re.sub(r"[^a-z0-9]", "", name.casefold())

@@ -22,6 +22,16 @@ review_status: needs_review
 - `{{ r.from_table }}` → `{{ r.to_table }}`{% if r.cardinality %} — {{ r.cardinality }}{% endif %}{% if r.kind %} _({{ r.kind }})_{% endif %}
 {% endfor %}
 
+## Notes transverses ({{ general_notes | length }})
+
+{% if general_notes %}
+{% for n in general_notes %}
+- {% if n.table %}_({{ n.table }} ?)_ — {% endif %}{% if n.topic %}_{{ n.topic }}_ — {% endif %}{{ n.text }} — {{ n.source_refs | map(attribute='file') | unique | join(', ') }}
+{% endfor %}
+{% else %}
+Aucune.
+{% endif %}
+
 ## Divergences détectées ({{ model.conflicts | length }})
 
 {% if model.conflicts %}

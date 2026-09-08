@@ -12,7 +12,7 @@ python = "^3.12"
 docling = "^2.0"
 openai = "^1.40"
 pydantic = "^2.7"
-pydantic-settings = "^2.5"
+python-dotenv = "^1.0"
 jinja2 = "^3.1"
 rich = "^13.7"
 
