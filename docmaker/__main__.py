@@ -26,7 +26,7 @@ def main() -> None:
         settings.llm.model,
         settings.vlm.model if settings.vlm.enabled else "off",
     )
-    if not settings.llm_api_key:
+    if not settings.llm_api_key and not settings.llm.is_local:
         log.warning("LLM_API_KEY vide — les étapes extract/render/VLM vont échouer.")
     run(settings)
 

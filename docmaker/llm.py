@@ -4,8 +4,6 @@ On ne suppose PAS de function calling fiable : on demande du JSON brut, on le ne
 et on le valide contre un schéma Pydantic, avec quelques tentatives de correction.
 """
 
-from __future__ import annotations
-
 import base64
 import json
 import logging
@@ -27,11 +25,19 @@ class LLM:
     def __init__(self, settings) -> None:
         self._c = settings.llm
         self._vlm = settings.vlm
-        self._client = OpenAI(base_url=settings.llm.base_url, api_key=settings.llm_api_key)
+        # Un serveur local (Ollama, LM Studio, vLLM sans --api-key) ignore l'auth,
+        # mais le SDK exige une valeur non vide.
+        self._client = OpenAI(
+            base_url=settings.llm.base_url,
+            api_key=settings.llm_api_key or "sk-no-key-required",
+            timeout=settings.llm.timeout,
+        )
 
     def json(self, prompt: str, schema: type[BaseModel], *, system: str = "") -> BaseModel:
-        sys = (system + "\n" if system else "") + _JSON_INSTRUCTION + json.dumps(
-            schema.model_json_schema(), ensure_ascii=False
+        sys = (
+            (system + "\n" if system else "")
+            + _JSON_INSTRUCTION
+            + json.dumps(schema.model_json_schema(), ensure_ascii=False)
         )
         messages: list[dict] = [
             {"role": "system", "content": sys},
@@ -47,7 +53,10 @@ class LLM:
                 log.warning("JSON invalide (essai %d/%d) : %s", attempt, self._c.max_retries, err)
                 messages += [
                     {"role": "assistant", "content": raw},
-                    {"role": "user", "content": f"Invalide : {err}. Renvoie UNIQUEMENT le JSON corrigé."},
+                    {
+                        "role": "user",
+                        "content": f"Invalide : {err}. Renvoie UNIQUEMENT le JSON corrigé.",
+                    },
                 ]
         raise RuntimeError(f"pas de JSON valide après {self._c.max_retries} essais : {err}")
 

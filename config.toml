@@ -1,5 +1,7 @@
 # Toute la configuration du pipeline. Aucune option en ligne de commande.
-# Les secrets (LLM_API_KEY) restent dans .env.
+# Ce fichier est la SOURCE des valeurs : le code (config.py) n'a que le schéma,
+# aucune valeur par défaut. Chaque clé ci-dessous est obligatoire.
+# Le secret LLM_API_KEY reste dans .env (jamais ici).
 
 source_dir  = "samples"
 build_dir   = "build"
@@ -21,6 +23,12 @@ model = "anthropic/claude-3.5-haiku"   # test ; en prod : endpoint OpenAI-compat
 max_context_tokens = 32000             # 256k annoncé, on reste conservateur
 max_retries = 3
 temperature = 0.0
+timeout = 600.0                        # secondes ; inférence locale (Ollama…) lente
+
+# LLM servi en local (laisser LLM_API_KEY vide dans .env) :
+#   Ollama    : base_url = "http://localhost:11434/v1", model = "qwen2.5:32b"
+#   LM Studio : base_url = "http://localhost:1234/v1"
+#   vLLM      : base_url = "http://localhost:8000/v1"
 
 [vlm]
 enabled = true
