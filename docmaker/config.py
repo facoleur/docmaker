@@ -44,6 +44,16 @@ class ChunkConfig(_Table):
     overlap_chars: int
 
 
+class OracleConfig(_Table):
+    """Accès en lecture au datamart. Le mot de passe vient de l'environnement."""
+
+    dsn: str  # "hote:port/service" — python-oracledb en mode thin, pas d'Instant Client
+    user: str
+    owners: list[str]  # vide = découverte automatique des schémas non-système
+    sample_views: int  # nb de vues tirées pour le test de parsing sqlglot
+    top_n: int  # taille des classements du rapport
+
+
 class Settings(BaseSettings):
     # extra="ignore" ici (pas "forbid") : sinon une variable non modélisée dans
     # .env ferait planter le chargement. Les champs requis ci-dessous suffisent à
@@ -66,9 +76,11 @@ class Settings(BaseSettings):
     llm: LLMConfig
     vlm: VLMConfig
     chunk: ChunkConfig
+    oracle: OracleConfig
 
-    # Hors TOML : fourni par l'environnement ou .env.
+    # Hors TOML : fournis par l'environnement ou .env.
     llm_api_key: str = ""
+    oracle_password: str = ""
 
     @classmethod
     def settings_customise_sources(cls, settings_cls, env_settings, dotenv_settings, **_):

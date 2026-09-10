@@ -3,13 +3,14 @@
 import logging
 
 from ..config import Settings
-
-# from . import chunk, extract, ingest, reconcile, render
-from . import chunk, extract, ingest, reconcile, render
+from . import chunk, extract, ingest, recon, reconcile, render
 
 log = logging.getLogger(__name__)
 
 STAGES = {
+    # Reconnaissance : lecture seule sur le datamart, hors chaîne documentaire.
+    # Se lance seule : stages = ["recon"] dans config.toml.
+    "recon": recon.run,
     "ingest": ingest.run,
     "chunk": chunk.run,
     "extract": extract.run,

@@ -27,9 +27,7 @@ _SYSTEM = (
 
 
 def run(settings: Settings) -> None:
-    chunkset = ChunkSet.model_validate_json(
-        (settings.build_dir / "chunks.json").read_text("utf-8")
-    )
+    chunkset = ChunkSet.model_validate_json((settings.build_dir / "chunks.json").read_text("utf-8"))
     llm = LLM(settings)
     total = len(chunkset.chunks)
 
@@ -57,7 +55,9 @@ def run(settings: Settings) -> None:
         )
 
     facts = Facts(tables=tables, relations=relations, notes=notes)
-    (settings.build_dir / "facts.json").write_text(facts.model_dump_json(indent=2), encoding="utf-8")
+    (settings.build_dir / "facts.json").write_text(
+        facts.model_dump_json(indent=2), encoding="utf-8"
+    )
     log.info(
         "total : %d mention(s) de table, %d de relation, %d note(s)",
         len(tables),

@@ -28,7 +28,7 @@ RAG-ready** : une fiche par table, un index, un `chunks.jsonl` prêt à indexer.
 Le livrable n'est pas la doc. Le livrable, c'est **la capacité à interroger un
 système que plus personne ne maîtrise entièrement**, sans mobiliser l'expert qui
 le connaît. La doc Markdown n'est qu'un format intermédiaire lisible par un
-humain *et* par un retriever. C'est un projet de **récupération de connaissance
+humain _et_ par un retriever. C'est un projet de **récupération de connaissance
 tacite**, avec la contrainte que la connaissance récupérée doit être **fiable ou
 explicitement marquée comme douteuse** — parce qu'en bancaire, une doc fausse et
 confiante coûte plus cher que pas de doc du tout.
@@ -41,12 +41,12 @@ l'utilise pour extraire des faits, et on rend la doc mécaniquement**.
 
 Concrètement, quatre paris s'enchaînent :
 
-| Pari | Formulation | Solidité |
-|---|---|---|
-| P1 | Un ≤30B sait *extraire* (map) mais pas *synthétiser sans dériver* (refine-chain) | **Très solide.** Le rejet du résumé roulant est le meilleur choix du projet. |
-| P2 | Le contenu utile est majoritairement un schéma de tables | **Fragile.** Déjà entamé par le commit « non-table information ». |
-| P3 | Deux mentions de la même table peuvent être fusionnées par nom normalisé | **Fragile.** Voir §5.3 et §5.4. |
-| P4 | Rendre les tableaux depuis un store ⇒ pas d'hallucination de schéma | **Solide sur la forme, incomplet sur le fond.** Voir §7.1. |
+| Pari | Formulation                                                                      | Solidité                                                                     |
+| ---- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| P1   | Un ≤30B sait _extraire_ (map) mais pas _synthétiser sans dériver_ (refine-chain) | **Très solide.** Le rejet du résumé roulant est le meilleur choix du projet. |
+| P2   | Le contenu utile est majoritairement un schéma de tables                         | **Fragile.** Déjà entamé par le commit « non-table information ».            |
+| P3   | Deux mentions de la même table peuvent être fusionnées par nom normalisé         | **Fragile.** Voir §5.3 et §5.4.                                              |
+| P4   | Rendre les tableaux depuis un store ⇒ pas d'hallucination de schéma              | **Solide sur la forme, incomplet sur le fond.** Voir §7.1.                   |
 
 L'axe anti-hallucination — provenance attachée par le code, jamais par le
 modèle ; tableaux rendus par Jinja ; `review_status: needs_review` partout ;
@@ -57,7 +57,7 @@ la partie du projet qu'il ne faut pas défaire.
 
 **Le pipeline n'a jamais tourné sur un seul document réel.** `samples/` est
 vide, `build/` et `out/` n'existent pas. Tout ce qui est écrit ci-dessus décrit
-une architecture *pensée*, pas une architecture *validée*. C'est le fait le plus
+une architecture _pensée_, pas une architecture _validée_. C'est le fait le plus
 important du projet aujourd'hui, et il conditionne tout le reste de ce document.
 
 ---
@@ -105,7 +105,7 @@ Chacune est jugée sur ce qu'elle coûte et ce qu'elle règle.
 
 ### 3.1 — Vocabulaire fermé : le LLM classe au lieu de générer
 
-**Aujourd'hui :** chaque fragment est envoyé au modèle qui *invente* la liste
+**Aujourd'hui :** chaque fragment est envoyé au modèle qui _invente_ la liste
 des tables qu'il y voit. `reconcile` recolle ensuite les morceaux par
 normalisation de chaîne, en espérant que `ACCOUNT`, `Account`, `T_ACCOUNT` et
 `la table des comptes` retombent sur leurs pattes. Elles ne retombent pas.
@@ -117,9 +117,9 @@ normalisation de chaîne, en espérant que `ACCOUNT`, `Account`, `T_ACCOUNT` et
    en-têtes de colonnes de tableaux, noms de feuilles Excel, mots suivis de
    `TABLE`/`table`. On agrège par fréquence, on dédoublonne, et **un humain
    valide la liste en dix minutes**. On obtient un vocabulaire fermé de N tables.
-2. **Passe extraction, contrainte.** Le prompt devient : *« Voici la liste des
+2. **Passe extraction, contrainte.** Le prompt devient : _« Voici la liste des
    tables connues du système : […]. Dans ce fragment, laquelle ou lesquelles
-   sont décrites, et qu'en dit-il ? Si aucune, réponds vide. »*
+   sont décrites, et qu'en dit-il ? Si aucune, réponds vide. »_
 
 Le modèle passe de **générateur** (tâche ouverte, dure, hallucinogène) à
 **classifieur** (tâche fermée, facile, vérifiable). C'est la transformation qui
@@ -134,7 +134,7 @@ humaine. **Verdict : à faire, quelle que soit l'architecture retenue.**
 
 ### 3.2 — Ne pas fusionner du tout : la fiche multi-sources
 
-**Aujourd'hui :** `reconcile` fabrique *une* vérité par colonne. Quand deux
+**Aujourd'hui :** `reconcile` fabrique _une_ vérité par colonne. Quand deux
 sources divergent sur le type, `_first()` prend la première valeur non vide —
 c'est-à-dire, en pratique, celle du fichier dont le nom vient en premier dans
 l'ordre alphabétique — et l'affiche dans le tableau comme un fait. Le conflit
@@ -144,11 +144,11 @@ est certes listé plus bas, mais le tableau, lui, ment.
 n'affiche une valeur unique que là où les sources sont d'accord :
 
 ```markdown
-| Colonne      | Type                             | Null   | Sources                   |
-|--------------|----------------------------------|--------|---------------------------|
-| `ACCOUNT_ID` | `BIGINT`                         | non    | 3 sources concordantes    |
-| `BALANCE`    | `DECIMAL(18,2)` **/** `NUMERIC`  | non/oui| divergent (2024 / 2019)   |
-| `LEGACY_FLAG`| `CHAR(1)`                        | oui    | 2019 seule                |
+| Colonne       | Type                            | Null    | Sources                 |
+| ------------- | ------------------------------- | ------- | ----------------------- |
+| `ACCOUNT_ID`  | `BIGINT`                        | non     | 3 sources concordantes  |
+| `BALANCE`     | `DECIMAL(18,2)` **/** `NUMERIC` | non/oui | divergent (2024 / 2019) |
+| `LEGACY_FLAG` | `CHAR(1)`                       | oui     | 2019 seule              |
 ```
 
 Le détail de chaque désaccord est développé sous le tableau, avec la date et
@@ -156,10 +156,10 @@ l'autorité de chaque source. **Forme complète et modèle de données : annexe 
 
 C'est **moins élégant et beaucoup plus honnête**. Ça reconnaît la nature réelle
 du matériau : ces documents ne décrivent pas le même système, ils décrivent le
-même système *à des dates différentes*. Fusionner un doc de 2019 et un de 2024
+même système _à des dates différentes_. Fusionner un doc de 2019 et un de 2024
 ne produit pas la vérité, ça produit une **chimère qui n'a jamais existé**.
 
-Et pour l'usager réel — l'expert qui relit — savoir *qui dit quoi* est
+Et pour l'usager réel — l'expert qui relit — savoir _qui dit quoi_ est
 précisément l'information de valeur : c'est ce qui lui permet de trancher en
 trois secondes. Le modèle unifié lui retire cette information pour lui rendre un
 verdict qu'il ne peut pas auditer.
@@ -226,7 +226,7 @@ avec son fragment source en regard :
 Un TUI ou une page web statique. La doc devient le **sous-produit** des
 décisions humaines, et chaque fait porte un `validated_by`. La métrique
 « temps de mise en production » identifiée dans `architecture-review.md` §4
-devient mesurable directement : elle *est* le temps passé dans la file.
+devient mesurable directement : elle _est_ le temps passé dans la file.
 
 Le renversement conceptuel : le pipeline n'automatise pas la documentation, il
 **automatise la préparation du travail de l'expert**. C'est ce qui fait
@@ -248,12 +248,12 @@ Un `.xlsx` de specs bancaires n'est pas un document : c'est une grille où le
 sens est porté par des choses que le Markdown ne sait pas représenter — la
 position d'une zone, les cellules fusionnées d'un en-tête sur deux niveaux, une
 couleur de fond qui signifie « déprécié », un commentaire de cellule qui porte
-la règle métier, une formule qui *est* la règle de calcul, un onglet masqué, un
+la règle métier, une formule qui _est_ la règle de calcul, un onglet masqué, un
 objet dessin flottant au-dessus de la grille. Aplatir tout ça produit un texte
 plausible et faux.
 
 **À la place :** un adaptateur par format, chacun produisant une représentation
-*fidèle à sa nature* — `openpyxl` pour Excel (plages, styles, commentaires,
+_fidèle à sa nature_ — `openpyxl` pour Excel (plages, styles, commentaires,
 formules, feuille par feuille avec détection des zones de tableau),
 `python-docx` pour Word (flux + tables + objets embarqués énumérés),
 `python-pptx` pour PowerPoint (une slide = une unité, texte + notes + formes),
@@ -307,9 +307,9 @@ journée et qu'on ne peut obtenir autrement.
 2. **Cinq documents réels dans `samples/`**, les plus représentatifs et les plus
    pénibles — surtout le `.xlsx` avec les diagrammes dedans.
 3. **`stages = ["ingest"]` seul.** Lire les `.md` produits à côté des fichiers
-   d'origine. Répondre à quatre questions : *que perd-on ? les titres Markdown
+   d'origine. Répondre à quatre questions : _que perd-on ? les titres Markdown
    existent-ils (le chunking en dépend entièrement) ? les tableaux survivent-ils ?
-   les diagrammes arrivent-ils au VLM ?*
+   les diagrammes arrivent-ils au VLM ?_
 4. **Selon la réponse**, arbitrer §3.5 (adaptateurs) — c'est ici que ça se joue.
 5. **Un gold set minuscule** : 20 faits sur 3 tables, dans un YAML écrit à la
    main en une heure. Pas 200. Vingt suffisent à détecter une régression, et
@@ -382,8 +382,8 @@ toute la §3.
 « Function calling non fiable » est une contrainte juste. Mais elle a été
 traduite en « on parse du texte et on réessaie trois fois », alors que la
 réponse technique adéquate est le **décodage contraint par grammaire**, qui
-opère au niveau du sampler et rend le JSON invalide *structurellement
-impossible*, indépendamment de la compétence du modèle :
+opère au niveau du sampler et rend le JSON invalide _structurellement
+impossible_, indépendamment de la compétence du modèle :
 
 - **vLLM** : `guided_json` / `response_format: {"type": "json_schema"}` (XGrammar)
 - **llama.cpp** : grammaires GBNF
@@ -400,14 +400,14 @@ comme filet, mais elle ne devrait plus jamais se déclencher.
 Deux vérifications, très rentables, absentes du pipeline :
 
 - **Ancrage littéral (gratuit, sans LLM).** Un nom de table ou de colonne extrait
-  qui n'apparaît pas *verbatim* — à la casse et à la ponctuation près — dans le
+  qui n'apparaît pas _verbatim_ — à la casse et à la ponctuation près — dans le
   fragment source est presque toujours une invention. Trente lignes de code
   éliminent l'essentiel des hallucinations d'identifiants. À poser en §5.1 du
   pipeline : ce qui ne passe pas le filtre part dans un `rejected.json` qu'on
   inspecte, pas à la poubelle.
-- **Passe de vérification (un appel LLM).** *« Voici un fragment et un fait
+- **Passe de vérification (un appel LLM).** _« Voici un fragment et un fait
   extrait. Le fait est-il énoncé dans le fragment ? présent / partiel /
-  absent. »* Classification ternaire : tâche facile même pour un 7B, gain de
+  absent. »_ Classification ternaire : tâche facile même pour un 7B, gain de
   précision considérable pour un coût marginal.
 
 ### 5.9 — Sans cache, l'itération est impossible
@@ -456,8 +456,8 @@ utilisé pour ça.
    d'argumentées.
 
 3. **Optimiser la précision d'extraction au lieu du temps d'expert.** La métrique
-   qui décide de la survie du projet est *combien de temps faut-il à l'expert
-   pour rendre la doc utilisable*. Un pipeline à 95 % de précision dont personne
+   qui décide de la survie du projet est _combien de temps faut-il à l'expert
+   pour rendre la doc utilisable_. Un pipeline à 95 % de précision dont personne
    ne peut auditer les 5 % restants est pire qu'un pipeline à 80 % dont chaque
    fait est traçable en un clic.
 
@@ -483,8 +483,8 @@ utilisé pour ça.
    la qualité de sortie. Le seul « prématuré » qui vaut le coup est le cache
    (§5.9), parce qu'il conditionne la vitesse d'itération, pas la performance.
 10. **Livrer sans dire ce qui manque.** Un `index.md` doit énoncer sa propre
-    couverture : *n documents traités, m en erreur, k images non exploitées,
-    p fragments non rattachés*. Une doc qui ne dit pas ce qu'elle ignore est
+    couverture : _n documents traités, m en erreur, k images non exploitées,
+    p fragments non rattachés_. Une doc qui ne dit pas ce qu'elle ignore est
     lue comme exhaustive.
 
 ---
@@ -563,7 +563,7 @@ ancienne, et le pipeline actuel n'en sait rien.**
 
 ### A.1 — Ce que la fusion fabrique exactement
 
-`reconcile` fusionne par nom normalisé sans jamais regarder *quand* chaque
+`reconcile` fusionne par nom normalisé sans jamais regarder _quand_ chaque
 source a été écrite. Avec `modele_2019.docx` et `specs_2024.xlsx` :
 
 ```
@@ -582,7 +582,7 @@ Trois mensonges distincts, de natures différentes :
    répertoire. La valeur affichée est le produit d'un tri alphabétique,
    présentée comme une donnée.
 2. **Une union temporelle impossible.** La table rendue contient `LEGACY_FLAG`
-   *et* `IBAN` — un état du système qui n'a peut-être jamais existé à aucun
+   _et_ `IBAN` — un état du système qui n'a peut-être jamais existé à aucun
    moment de sa vie.
 3. **Une perte d'auditabilité.** L'expert qui relit ne peut pas savoir que
    `NUMERIC` vient d'un document de sept ans. L'information qui lui aurait permis
@@ -603,11 +603,11 @@ La colonne entre dans le modèle et s'affiche dans le tableau **sans le moindre
 signal**. Or il y a trois lectures possibles, et le pipeline en choisit une sans
 le dire :
 
-| Lecture | Conséquence sur la fiche |
-|---|---|
+| Lecture                                           | Conséquence sur la fiche                   |
+| ------------------------------------------------- | ------------------------------------------ |
 | La colonne a été **supprimée** entre 2019 et 2024 | La fiche affirme qu'elle existe → **faux** |
-| Le document de 2024 est **partiel** | La fiche a raison, par chance |
-| Le document de 2024 couvre un **autre périmètre** | Indéterminé |
+| Le document de 2024 est **partiel**               | La fiche a raison, par chance              |
+| Le document de 2024 couvre un **autre périmètre** | Indéterminé                                |
 
 Ces cas sont indistinguables — **sauf si l'on sait ce que chaque source prétend
 couvrir.** C'est le concept qui débloque tout le raisonnement :
@@ -626,9 +626,9 @@ ajouter au prompt d'extraction :
   ou en mentionne-t-il seulement certaines ? »   →   exhaustive | partielle
 ```
 
-Avec ce seul champ, le sort de `LEGACY_FLAG` devient inférable : *présente dans
+Avec ce seul champ, le sort de `LEGACY_FLAG` devient inférable : _présente dans
 une énumération de 2019, absente d'une énumération de 2024 → probablement
-supprimée, à confirmer*. Sans lui, la question est indécidable et le pipeline
+supprimée, à confirmer_. Sans lui, la question est indécidable et le pipeline
 masque le fait qu'elle se pose.
 
 ### A.3 — Dater les sources est plus dur qu'il n'y paraît
@@ -637,15 +637,15 @@ Le `mtime` d'un fichier sur un partage réseau ne vaut rien : une copie, une
 migration de serveur, quelqu'un qui ouvre un `.xlsx` et le re-sauve par réflexe,
 et 2019 devient 2026. Il faut une cascade de signaux, chacun avec sa fiabilité :
 
-| Signal | Fiabilité |
-|---|---|
-| Date écrite **dans** le document (page de garde, pied de page, cellule « version ») | haute |
-| Métadonnées internes du format (`docProps/core.xml` → `dcterms:created`) | moyenne — survit aux copies, pas aux resave |
-| Nom de fichier (`specs_v3_2024.xlsx`, `_v2_`, `_final_2019`) | moyenne |
-| `mtime` du système de fichiers | **basse** |
-| Saisie manuelle dans `config.toml` | **la meilleure** |
+| Signal                                                                              | Fiabilité                                   |
+| ----------------------------------------------------------------------------------- | ------------------------------------------- |
+| Date écrite **dans** le document (page de garde, pied de page, cellule « version ») | haute                                       |
+| Métadonnées internes du format (`docProps/core.xml` → `dcterms:created`)            | moyenne — survit aux copies, pas aux resave |
+| Nom de fichier (`specs_v3_2024.xlsx`, `_v2_`, `_final_2019`)                        | moyenne                                     |
+| `mtime` du système de fichiers                                                      | **basse**                                   |
+| Saisie manuelle dans `config.toml`                                                  | **la meilleure**                            |
 
-En pratique : une passe automatique qui *propose* une date et son niveau de
+En pratique : une passe automatique qui _propose_ une date et son niveau de
 confiance, et une table dans `config.toml` où l'on corrige à la main les sources
 qui comptent. Sur vingt fichiers, c'est un quart d'heure de saisie — et ça vaut
 plus que n'importe quel raffinement de prompt.
@@ -680,7 +680,7 @@ authority = 1            # plus récent, mais indicatif
 ```
 
 Règle de préséance : **autorité d'abord, date ensuite.** Et surtout : la
-préséance ne sert qu'à *ordonner l'affichage et suggérer un arbitrage*. Elle ne
+préséance ne sert qu'à _ordonner l'affichage et suggérer un arbitrage_. Elle ne
 supprime jamais l'information concurrente — sinon on retombe exactement dans le
 problème du `_first()`, avec un tri plus intelligent mais tout aussi silencieux.
 
@@ -728,22 +728,22 @@ La bonne forme est un tableau unique, avec trois régimes visuels :
 ```markdown
 ## Colonnes
 
-| Colonne | Type | Null | Clé | Sources |
-|---|---|---|---|---|
-| `ACCOUNT_ID` | `BIGINT` | non | PK | ✅ 3 sources concordantes |
-| `BALANCE` | ⚠️ `DECIMAL(18,2)` **/** `NUMERIC` | ⚠️ non **/** oui | | ⚠️ divergent |
-| `IBAN` | `VARCHAR(34)` | oui | | specs_v3 (2024) uniquement |
-| `LEGACY_FLAG` | `CHAR(1)` | oui | | ⏳ 2019 seule — **absente de la liste exhaustive de 2024** |
+| Colonne       | Type                               | Null             | Clé | Sources                                                    |
+| ------------- | ---------------------------------- | ---------------- | --- | ---------------------------------------------------------- |
+| `ACCOUNT_ID`  | `BIGINT`                           | non              | PK  | ✅ 3 sources concordantes                                  |
+| `BALANCE`     | ⚠️ `DECIMAL(18,2)` **/** `NUMERIC` | ⚠️ non **/** oui |     | ⚠️ divergent                                               |
+| `IBAN`        | `VARCHAR(34)`                      | oui              |     | specs_v3 (2024) uniquement                                 |
+| `LEGACY_FLAG` | `CHAR(1)`                          | oui              |     | ⏳ 2019 seule — **absente de la liste exhaustive de 2024** |
 
 ### ⚠️ BALANCE — divergence entre sources
 
 - `DECIMAL(18,2)`, NOT NULL — **specs_v3.xlsx** » Comptes
   _(2024-03, date explicite, autorité 3)_
-- `NUMERIC`, nullable — modele_donnees.docx » §4.2
-  _(2019-11, date explicite, autorité 2)_
+- `NUMERIC`, nullable — modele*donnees.docx » §4.2
+  *(2019-11, date explicite, autorité 2)\_
 
 → La source la plus récente **et** la plus autoritaire donne `DECIMAL(18,2)`.
-  **Non tranché automatiquement.**
+**Non tranché automatiquement.**
 
 ### ⏳ LEGACY_FLAG — probablement supprimée
 
@@ -754,11 +754,11 @@ specs_v3.xlsx (2024-03), donnée comme exhaustive, ne la mentionne pas.
 
 Trois régimes, trois messages distincts :
 
-| Régime | Signal | Coût de lecture |
-|---|---|---|
-| Concordance | `✅ n sources` | nul — aussi compact qu'aujourd'hui |
-| Divergence | valeurs côte à côte + section de détail | payé là où il y a une décision à prendre |
-| Absence asymétrique | `⏳` + explication du raisonnement | payé là où il y a un doute réel |
+| Régime              | Signal                                  | Coût de lecture                          |
+| ------------------- | --------------------------------------- | ---------------------------------------- |
+| Concordance         | `✅ n sources`                          | nul — aussi compact qu'aujourd'hui       |
+| Divergence          | valeurs côte à côte + section de détail | payé là où il y a une décision à prendre |
+| Absence asymétrique | `⏳` + explication du raisonnement      | payé là où il y a un doute réel          |
 
 Le coût de lisibilité n'est payé qu'aux endroits qui portent une décision. Et
 surtout : **l'expert peut trancher sans ouvrir un seul fichier source** — ce qui
@@ -766,11 +766,11 @@ est exactement la valeur que le projet cherche à produire (§5.2).
 
 ### A.7 — Ce que ça coûte
 
-| | |
-|---|---|
-| **Ajouté** | 4 champs sur `SourceRef` (~10 l.) · passe de datation multi-signaux (~80 l.) · champ `scope` dans le prompt d'extraction (2 l.) · calcul du statut d'accord dans `reconcile` (~60 l.) · les 3 régimes dans le template Jinja (~40 l.) |
-| **Supprimé** | `_first()` et son arbitrage silencieux · l'essentiel de `conflicts.py` — le désaccord n'est plus un cas particulier détecté après coup, c'est le **régime normal** du modèle |
-| **Solde** | à peu près neutre en volume de code, **très positif en garanties** |
+|              |                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ajouté**   | 4 champs sur `SourceRef` (~10 l.) · passe de datation multi-signaux (~80 l.) · champ `scope` dans le prompt d'extraction (2 l.) · calcul du statut d'accord dans `reconcile` (~60 l.) · les 3 régimes dans le template Jinja (~40 l.) |
+| **Supprimé** | `_first()` et son arbitrage silencieux · l'essentiel de `conflicts.py` — le désaccord n'est plus un cas particulier détecté après coup, c'est le **régime normal** du modèle                                                          |
+| **Solde**    | à peu près neutre en volume de code, **très positif en garanties**                                                                                                                                                                    |
 
 Le vrai coût n'est pas le code : c'est la datation manuelle des sources, un
 quart d'heure à refaire quand le corpus change. C'est le meilleur rapport

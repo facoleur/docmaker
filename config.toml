@@ -15,6 +15,7 @@ formats = ["docx", "xlsx", "pptx", "pdf"]
 # Étapes exécutées, dans l'ordre. Retirer une étape pour la sauter :
 # chaque étape lit/écrit un artefact dans build/, donc rejouable seule
 # (ex. stages = ["extract", "reconcile", "render"] pour itérer sans re-convertir).
+# La passe de reconnaissance se lance seule : stages = ["recon"].
 stages = ["ingest", "chunk", "extract", "reconcile", "render"]
 
 [llm]
@@ -38,3 +39,18 @@ prompt = "Décris ce diagramme de base de données : entités/tables, attributs 
 [chunk]
 max_chars = 12000
 overlap_chars = 400
+
+[oracle]
+# Accès en LECTURE SEULE au datamart (étape "recon"). Le mot de passe reste
+# dans .env (ORACLE_PASSWORD). python-oracledb en mode thin : aucun Instant
+# Client à installer.
+dsn = "hote:1521/service"      # ou un alias TNS
+user = "compte_lecture"
+
+# Schémas à analyser. Laisser vide pour une découverte automatique (tout ce qui
+# n'est pas un schéma maintenu par Oracle) — puis figer la liste ici après avoir
+# lu le rapport, pour cadrer les passes suivantes.
+owners = []
+
+sample_views = 20   # vues tirées pour le test de parsing sqlglot
+top_n = 50          # taille des classements du rapport
