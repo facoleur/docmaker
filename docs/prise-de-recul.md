@@ -493,6 +493,11 @@ utilisé pour ça.
 
 Pas une revue exhaustive : les points qui touchent aux garanties annoncées.
 
+> **Statut au 2026-09-11.** §7.1, §7.2, §7.3 et §7.4 sont **corrigés** — le
+> constat ci-dessous est conservé tel quel, il documente le pourquoi de chaque
+> correction. §7.5 et §7.6 restent ouverts : ils ne se vérifient qu'au premier
+> run sur un document réel. Détail dans `todo.md`, section « Dette connue ».
+
 ### 7.1 — Le tableau rendu « déterministiquement » contient un choix arbitraire
 
 `reconcile.py`, `_first()` : en cas de divergence de type entre deux sources, la

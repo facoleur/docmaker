@@ -87,11 +87,18 @@ Ordre choisi pour que chaque étape ait de la valeur seule, et que les première
 ne dépendent d'aucun accès supplémentaire.
 
 - [ ] **Étape `catalog`** — lecture du catalogue Oracle → squelette factuel
-  Tables, vues, colonnes, types, `NOT NULL`, PK, index, partitions, synonymes,
-  **et les `COMMENT ON` existants**.
+  Tables, vues, vues matérialisées, colonnes, types, `NOT NULL`, PK, FK, index,
+  partitions, synonymes, dépendances, **et les `COMMENT ON` existants**.
+  _Spécification :_ `exemples/catalog.example.json` — format exact attendu.
+  _Conception :_ `couche-semantique.md` §6.1 (fidélité au dialecte, requêtes en
+  masse, sérialisation déterministe).
   _Sortie :_ `build/catalog.json` ; modèles Pydantic dans `models.py`.
-  _Critère :_ le nombre de colonnes correspond exactement à la §1 du rapport de
-  reconnaissance. Zéro appel LLM dans cette étape.
+  _Critères :_
+  - le nombre de colonnes correspond exactement à la §1 du rapport `recon` ;
+  - zéro appel LLM, zéro écriture en base ;
+  - deux exécutions successives produisent un fichier **identique à l'octet**
+    (sérialisation déterministe → le diff mensuel devient une veille de dérive) ;
+  - tout objet ayant un `sql` non nul est prêt à être passé à `lineage`.
 
 - [ ] **Étape `glossary`** — dictionnaire d'abréviations
   Découper tous les noms sur `_` et sur les frontières de casse, compter les
@@ -249,9 +256,19 @@ il ne peut nommer qu'ancré sur des preuves.
 - [ ] **Le pipeline documentaire n'a jamais tourné sur un document réel.**
       `samples/` est vide. Reste le fait le plus important du projet
       (`prise-de-recul.md` §1).
-- [ ] **`docmaker/extract.py` en double** avec `docmaker/pipeline/extract.py` —
-      la copie à la racine utilise des imports relatifs `..` qui échoueraient si
-      elle était importée. À supprimer ou à déplacer volontairement.
-- [ ] **`docs/prise-de-recul.md` §5 et §7** listent des défauts du code actuel
-      (arbitrage silencieux dans `reconcile`, `nullable` perdu dans les conflits)
-      qui restent valables tant que ces étapes existent.
+- [x] **`docmaker/extract.py` en double** — supprimé.
+- [x] **§7.1 — arbitrage silencieux dans le tableau rendu.** `MergedColumn`
+      porte désormais ses divergences ; la cellule affiche `⚠ A / B` au lieu
+      d'une valeur choisie par ordre alphabétique de fichier.
+- [x] **§7.2 — un run long pouvait tout perdre.** `extract` écrit dans
+      `facts.jsonl` fragment par fragment, reprend où il s'est arrêté, et
+      n'abandonne plus le run entier sur une erreur réseau.
+- [x] **§7.3 — faux conflits sur les types.** Normalisation avant comparaison
+      (espaces, casse, précision, alias). `NUMBER` et `DECIMAL` restent
+      distincts : les conflater masquerait une différence réelle.
+- [x] **§7.4 — le conflit `nullable` perdait sa provenance.** Les trois champs
+      comparés passent maintenant par le même chemin.
+- [ ] **§7.5 — le chunking repose entièrement sur des titres Markdown.**
+      Non corrigé : ne se vérifie qu'au premier run sur un `.xlsx` réel.
+- [ ] **`prise-de-recul.md` §5** liste d'autres défauts qui restent valables
+      tant que ces étapes existent sous cette forme.

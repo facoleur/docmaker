@@ -1,7 +1,13 @@
 """reconcile : fusionne les mentions par entité et remonte les divergences.
 
-Fusion par nom normalisé (tables et colonnes). Conflits détectés en v1 sur les
-champs structurants des colonnes : type, nullable, key.
+Fusion par nom normalisé (tables et colonnes). Conflits détectés sur les champs
+structurants des colonnes : type, nullable, key — tous par le même chemin, donc
+tous avec leur provenance (`prise-de-recul.md` §7.4).
+
+Une divergence est aussi recopiée sur la colonne fusionnée (`MergedColumn.
+conflicts`) pour que le rendu l'affiche au lieu d'un arbitrage silencieux (§7.1).
+La valeur retenue par `_first()` reste indicative : elle ne fait pas foi quand le
+champ figure dans `conflicts`.
 """
 
 from __future__ import annotations
@@ -14,15 +20,21 @@ from datetime import datetime
 
 from ..config import Settings
 from ..models import Conflict, DocModel, Entity, Facts, MergedColumn, NoteFacts, SourceRef
-from .conflicts import field_conflict
+from .conflicts import field_conflict, normalize_type
 
 log = logging.getLogger(__name__)
+
+# Champs comparés entre sources, et ce qui compte comme « la même valeur ».
+_COMPARED = ("type", "key", "nullable")
+_NORMALIZERS = {"type": normalize_type}
 
 
 def run(settings: Settings) -> None:
     facts = Facts.model_validate_json((settings.build_dir / "facts.json").read_text("utf-8"))
     model = reconcile(facts)
-    (settings.build_dir / "model.json").write_text(model.model_dump_json(indent=2), encoding="utf-8")
+    (settings.build_dir / "model.json").write_text(
+        model.model_dump_json(indent=2), encoding="utf-8"
+    )
     log.info(
         "%d entité(s), %d relation(s), %d note(s), %d conflit(s)",
         len(model.entities),
@@ -54,24 +66,19 @@ def reconcile(facts: Facts) -> DocModel:
             cname = observed[0][0].name
             entity_field = f"{name}.{cname}"
 
-            for field in ("type", "key"):
+            divergent: dict[str, list[str]] = {}
+            for field in _COMPARED:
                 conflict = field_conflict(
                     entity_field,
                     field,
-                    [(getattr(col, field), _src(refs)) for col, refs in observed],
+                    [(_observed(col, field), _src(refs)) for col, refs in observed],
+                    normalize=_NORMALIZERS.get(field),
                 )
                 if conflict:
                     conflicts.append(conflict)
-            nulls = {col.nullable for col, _ in observed if col.nullable is not None}
-            if len(nulls) > 1:
-                conflicts.append(
-                    Conflict(
-                        entity=entity_field,
-                        field="nullable",
-                        values=[{"value": str(n), "source": ""} for n in sorted(map(str, nulls))],
-                    )
-                )
+                    divergent[field] = [v["value"] for v in conflict.values]
 
+            nulls = {col.nullable for col, _ in observed if col.nullable is not None}
             merged.append(
                 MergedColumn(
                     name=cname,
@@ -79,6 +86,7 @@ def reconcile(facts: Facts) -> DocModel:
                     nullable=next(iter(nulls)) if len(nulls) == 1 else None,
                     key=_first(col.key for col, _ in observed),
                     description=_first(col.description for col, _ in observed),
+                    conflicts=divergent,
                     source_refs=_dedup(r for _, refs in observed for r in refs),
                 )
             )
@@ -111,6 +119,14 @@ def _dedup_notes(notes: Iterable[NoteFacts]) -> list[NoteFacts]:
         else:
             out[key] = n.model_copy(deep=True)
     return list(out.values())
+
+
+def _observed(col, field: str) -> str:
+    """Valeur comparable d'un champ. `nullable` devient du texte pour suivre le
+    même chemin que les autres champs — et donc garder sa provenance."""
+    if field == "nullable":
+        return "" if col.nullable is None else ("oui" if col.nullable else "non")
+    return getattr(col, field) or ""
 
 
 def _norm(name: str) -> str:

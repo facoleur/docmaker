@@ -408,6 +408,52 @@ comme indisponible** et on s'appuie sur les substituts du §2.5.
 Dépendance à ajouter : `sqlglot`. Le pivot reste `model.json`, source unique
 dont tout le reste dérive.
 
+### 6.1 — L'artefact `catalog.json`
+
+Exemple complet et valide : **`exemples/catalog.example.json`** — une table de
+fait partitionnée, une dimension historisée, une vue et une vue matérialisée,
+plus les synonymes et le graphe de dépendances. Il sert de spécification à
+l'étape `catalog` : ce qu'elle doit produire, champ par champ.
+
+Trois partis pris, tous discutables mais tous conscients.
+
+**Fidèle à Oracle, pas au modèle documentaire existant.** `DocModel` a été conçu
+pour des faits extraits par LLM, où un `type: str` suffit. Le catalogue garde
+`data_type`, `length`, `precision`, `scale` séparés : les aplatir tôt en
+`"NUMBER(18,2)"` perd ce dont `annotate` et le mapping OpenMetadata auront
+besoin. La fusion catalogue + lineage + profil + documents est une étape
+ultérieure, pas une conséquence du format de stockage.
+
+**Une requête par vue catalogue, pas une par table.** Sur trois cents tables,
+interroger objet par objet fait trois cents allers-retours ; huit requêtes en
+masse suivies d'un assemblage en mémoire par FQN prennent quelques secondes. Le
+texte des vues (`LONG`) se récupère aussi en masse — c'est une différence avec
+`recon`, qui n'en échantillonne que vingt et peut se permettre l'unitaire.
+
+**Sérialisation déterministe** — objets triés par FQN, colonnes par position.
+Rejouer l'étape le mois suivant et faire `git diff catalog.json` montre alors
+exactement ce qui a bougé dans le datamart : colonne ajoutée, type changé,
+commentaire renseigné, table disparue. C'est gratuit si on y pense maintenant,
+coûteux à rattraper ensuite — et c'est la seule veille de dérive disponible
+sans accès aux logs.
+
+**Le FQN `OWNER.NAME` est l'identité** utilisée par toutes les étapes suivantes.
+Les synonymes sont résolus vers lui, jamais l'inverse. C'est aussi ce qui rend la
+projection vers Cube et vers OpenMetadata mécanique plutôt qu'interprétative
+(§8.6) : la clé existe déjà, on ne la fabrique pas au moment de projeter.
+
+Ce que l'artefact débloque immédiatement, avant le moindre appel LLM :
+
+| Sortie | Débloque |
+| --- | --- |
+| La liste des objets | Le **vocabulaire fermé** de `extract` — fin du rapprochement par normalisation de chaîne |
+| Les `comment` non vides | La sémantique **déjà écrite**, à récolter avant d'en générer |
+| `dependencies` | Le graphe de flux objet à objet, maintenu par Oracle, sans écrire un parseur |
+| Les `sql` non nuls | L'entrée de `lineage` — vues et vues matérialisées |
+| Contraintes `R` non validées + `indexes` | L'entrée de `joins` : les chemins présumés à vérifier par test d'inclusion |
+| `last_analyzed` | Décide si `profile` se contente des statistiques ou doit scanner |
+| FQN, types, contraintes | Les cibles de projection : payload OpenMetadata (`CreateTableRequest`) et modèle Cube (§8.6) |
+
 **Ordre de travail suggéré** — chaque étape a de la valeur seule, et les
 premières ne dépendent d'aucun accès supplémentaire :
 
@@ -620,6 +666,11 @@ Conséquences immédiates, faibles par construction :
   comme cible de projection, `model.json` restant le pivot neutre. Conséquences :
   backend supplémentaire pour `render` (§6), question 13 au §7. Le journal des
   révisions passe en §9.
+- **2026-09-11** — Ajout du §6.1 : l'artefact `catalog.json` spécifié, avec
+  `exemples/catalog.example.json` comme référence exécutable. Par ailleurs, les
+  défauts §7.1 à §7.4 relevés dans `prise-de-recul.md` sont corrigés dans le
+  code (arbitrage silencieux, perte de run, faux conflits de types, provenance
+  du conflit `nullable`).
 - **2026-09-10 (c)** — Connexion directe confirmée (le code interroge la base,
   pas de forme « script SQL + spool »). BI identifiée : **Tableau**, accès
   probable. Ajout du §2.8 : la couche sémantique Tableau couvre à elle seule la

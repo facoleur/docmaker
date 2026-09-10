@@ -30,12 +30,16 @@ conflicts:
 
 {{ overview or e.description or "_Aucune description disponible dans les sources._" }}
 
+{# Une cellule n'affiche une valeur unique que si les sources sont d'accord.
+   Sinon elle montre la divergence : le tableau ne doit jamais présenter comme
+   un fait un arbitrage fait par le code (prise-de-recul.md §7.1). #}
+{% macro cell(col, field, value) %}{% if field in col.conflicts %}⚠ {{ col.conflicts[field] | join(" / ") }}{% else %}{{ value }}{% endif %}{% endmacro %}
 ## Colonnes
 
 | Colonne | Type | Nullable | Clé | Description |
 |---|---|---|---|---|
 {% for col in e.columns %}
-| `{{ col.name }}` | {{ col.type or "?" }} | {{ "?" if col.nullable is none else ("oui" if col.nullable else "non") }} | {{ col.key or "" }} | {{ col.description or "" }} |
+| `{{ col.name }}` | {{ cell(col, "type", col.type or "?") }} | {{ cell(col, "nullable", "?" if col.nullable is none else ("oui" if col.nullable else "non")) }} | {{ cell(col, "key", col.key or "") }} | {{ col.description or "" }} |
 {% endfor %}
 
 {% if conflicts %}

@@ -53,3 +53,41 @@ def test_identical_notes_merge_and_union_sources():
     assert len(model.notes) == 2
     merged = next(n for n in model.notes if "négatif" in n.text)
     assert {r.file for r in merged.source_refs} == {"a.docx", "b.xlsx"}
+
+
+def test_nullable_conflict_keeps_its_provenance():
+    """§7.4 : `nullable` passait à côté de field_conflict et perdait sa source."""
+    facts = Facts(
+        tables=[
+            _table("Account", "balance", "a.docx", nullable=False),
+            _table("Account", "balance", "b.xlsx", nullable=True),
+        ]
+    )
+    model = reconcile(facts)
+    conflict = next(c for c in model.conflicts if c.field == "nullable")
+    assert all(v["source"] for v in conflict.values)
+
+
+def test_divergence_is_carried_by_the_merged_column():
+    """§7.1 : le tableau doit pouvoir afficher la divergence, pas un arbitrage."""
+    facts = Facts(
+        tables=[
+            _table("Account", "balance", "a.docx", type="DECIMAL(18,2)"),
+            _table("Account", "balance", "b.xlsx", type="VARCHAR(20)"),
+        ]
+    )
+    col = reconcile(facts).entities[0].columns[0]
+    assert set(col.conflicts["type"]) == {"DECIMAL(18,2)", "VARCHAR(20)"}
+
+
+def test_type_formatting_noise_does_not_create_a_conflict():
+    """§7.3 : sans normalisation, ce bruit noierait les vraies divergences."""
+    facts = Facts(
+        tables=[
+            _table("Account", "balance", "a.docx", type="DECIMAL(18, 2)"),
+            _table("Account", "balance", "b.xlsx", type="decimal(18,2)"),
+        ]
+    )
+    model = reconcile(facts)
+    assert model.conflicts == []
+    assert model.entities[0].columns[0].conflicts == {}

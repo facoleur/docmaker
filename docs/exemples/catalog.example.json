@@ -1,0 +1,338 @@
+{
+  "generated_at": "2026-09-11T09:12:04",
+  "db_version": "19.0.0.0.0",
+  "owners": ["DM_SOCLE", "DM_MARTS"],
+  "objects": [
+    {
+      "fqn": "DM_MARTS.F_MVT",
+      "owner": "DM_MARTS",
+      "name": "F_MVT",
+      "kind": "TABLE",
+      "comment": "",
+      "num_rows": 4213880000,
+      "avg_row_len": 96,
+      "last_analyzed": "2026-09-09T22:14:00",
+      "partition_key": ["DT_TRT"],
+      "sql": null,
+      "columns": [
+        {
+          "name": "ID_MVT",
+          "position": 1,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 18,
+          "scale": 0,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "DT_TRT",
+          "position": 2,
+          "data_type": "DATE",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": false,
+          "default": null,
+          "comment": "Date de traitement comptable (pas la date de valeur)."
+        },
+        {
+          "name": "ID_CLI",
+          "position": 3,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 18,
+          "scale": 0,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "TYP_MVT",
+          "position": 4,
+          "data_type": "VARCHAR2",
+          "length": 3,
+          "precision": null,
+          "scale": null,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "MT_MVT",
+          "position": 5,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 18,
+          "scale": 2,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "CD_DEV",
+          "position": 6,
+          "data_type": "CHAR",
+          "length": 3,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": "'EUR'",
+          "comment": ""
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PK_F_MVT",
+          "kind": "P",
+          "columns": ["ID_MVT"],
+          "ref_fqn": null,
+          "ref_columns": [],
+          "status": "ENABLED",
+          "validated": "VALIDATED",
+          "condition": null
+        },
+        {
+          "name": "FK_F_MVT_CLI",
+          "kind": "R",
+          "columns": ["ID_CLI"],
+          "ref_fqn": "DM_MARTS.DIM_CLI",
+          "ref_columns": ["ID_CLI"],
+          "status": "ENABLED",
+          "validated": "NOT VALIDATED",
+          "condition": null
+        },
+        {
+          "name": "CK_F_MVT_DEV",
+          "kind": "C",
+          "columns": ["CD_DEV"],
+          "ref_fqn": null,
+          "ref_columns": [],
+          "status": "ENABLED",
+          "validated": "VALIDATED",
+          "condition": "CD_DEV IN ('EUR','USD','GBP','CHF')"
+        }
+      ],
+      "indexes": [
+        { "name": "PK_F_MVT", "columns": ["ID_MVT"], "unique": true },
+        { "name": "IX_F_MVT_CLI_DT", "columns": ["ID_CLI", "DT_TRT"], "unique": false }
+      ]
+    },
+    {
+      "fqn": "DM_MARTS.DIM_CLI",
+      "owner": "DM_MARTS",
+      "name": "DIM_CLI",
+      "kind": "TABLE",
+      "comment": "Dimension client historisée.",
+      "num_rows": 18400000,
+      "avg_row_len": 210,
+      "last_analyzed": "2026-09-09T22:31:00",
+      "partition_key": [],
+      "sql": null,
+      "columns": [
+        {
+          "name": "ID_CLI",
+          "position": 1,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 18,
+          "scale": 0,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "CLI_STAT_CD",
+          "position": 2,
+          "data_type": "CHAR",
+          "length": 1,
+          "precision": null,
+          "scale": null,
+          "nullable": false,
+          "default": null,
+          "comment": "Statut client : A=actif, P=prospect, C=clos, S=suspendu."
+        },
+        {
+          "name": "DT_DEB",
+          "position": 3,
+          "data_type": "DATE",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": false,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "DT_FIN",
+          "position": 4,
+          "data_type": "DATE",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "FLG_COUR",
+          "position": 5,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 1,
+          "scale": 0,
+          "nullable": false,
+          "default": "0",
+          "comment": ""
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PK_DIM_CLI",
+          "kind": "P",
+          "columns": ["ID_CLI", "DT_DEB"],
+          "ref_fqn": null,
+          "ref_columns": [],
+          "status": "ENABLED",
+          "validated": "VALIDATED",
+          "condition": null
+        }
+      ],
+      "indexes": [
+        { "name": "PK_DIM_CLI", "columns": ["ID_CLI", "DT_DEB"], "unique": true },
+        { "name": "IX_DIM_CLI_COUR", "columns": ["FLG_COUR"], "unique": false }
+      ]
+    },
+    {
+      "fqn": "DM_MARTS.V_MVT_CLI_M",
+      "owner": "DM_MARTS",
+      "name": "V_MVT_CLI_M",
+      "kind": "VIEW",
+      "comment": "",
+      "num_rows": null,
+      "avg_row_len": null,
+      "last_analyzed": null,
+      "partition_key": [],
+      "sql": "SELECT TRUNC(m.DT_TRT, 'MM') AS DT_MOIS, m.ID_CLI, m.TYP_MVT, SUM(m.MT_MVT) AS MT_TOT, COUNT(*) AS NB_MVT, CASE WHEN c.CLI_STAT_CD IN ('A','P') THEN 1 ELSE 0 END AS FLG_X FROM DM_MARTS.F_MVT m, DM_MARTS.DIM_CLI c WHERE m.ID_CLI = c.ID_CLI AND c.FLG_COUR = 1 AND m.TYP_MVT <> 'ANN' GROUP BY TRUNC(m.DT_TRT, 'MM'), m.ID_CLI, m.TYP_MVT, CASE WHEN c.CLI_STAT_CD IN ('A','P') THEN 1 ELSE 0 END",
+      "columns": [
+        {
+          "name": "DT_MOIS",
+          "position": 1,
+          "data_type": "DATE",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "ID_CLI",
+          "position": 2,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 18,
+          "scale": 0,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "TYP_MVT",
+          "position": 3,
+          "data_type": "VARCHAR2",
+          "length": 3,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "MT_TOT",
+          "position": 4,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "NB_MVT",
+          "position": 5,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "FLG_X",
+          "position": 6,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": 1,
+          "scale": 0,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        }
+      ],
+      "constraints": [],
+      "indexes": []
+    },
+    {
+      "fqn": "DM_MARTS.MV_CA_MENS",
+      "owner": "DM_MARTS",
+      "name": "MV_CA_MENS",
+      "kind": "MVIEW",
+      "comment": "",
+      "num_rows": 2160000,
+      "avg_row_len": 48,
+      "last_analyzed": "2026-09-10T03:02:00",
+      "partition_key": ["DT_MOIS"],
+      "sql": "SELECT DT_MOIS, SUM(MT_TOT) AS MT_CA FROM DM_MARTS.V_MVT_CLI_M WHERE FLG_X = 1 GROUP BY DT_MOIS",
+      "columns": [
+        {
+          "name": "DT_MOIS",
+          "position": 1,
+          "data_type": "DATE",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        },
+        {
+          "name": "MT_CA",
+          "position": 2,
+          "data_type": "NUMBER",
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "nullable": true,
+          "default": null,
+          "comment": ""
+        }
+      ],
+      "constraints": [],
+      "indexes": []
+    }
+  ],
+  "synonyms": [
+    { "fqn": "PUBLIC.MOUVEMENTS", "target_fqn": "DM_MARTS.F_MVT" },
+    { "fqn": "DM_SOCLE.CLIENTS", "target_fqn": "DM_MARTS.DIM_CLI" }
+  ],
+  "dependencies": [
+    { "fqn": "DM_MARTS.V_MVT_CLI_M", "kind": "VIEW", "depends_on": "DM_MARTS.F_MVT" },
+    { "fqn": "DM_MARTS.V_MVT_CLI_M", "kind": "VIEW", "depends_on": "DM_MARTS.DIM_CLI" },
+    { "fqn": "DM_MARTS.MV_CA_MENS", "kind": "MVIEW", "depends_on": "DM_MARTS.V_MVT_CLI_M" },
+    { "fqn": "DM_SOCLE.PKG_CHARGE_MVT", "kind": "PACKAGE BODY", "depends_on": "DM_MARTS.F_MVT" }
+  ]
+}

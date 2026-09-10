@@ -118,6 +118,10 @@ class Conflict(BaseModel):
 
 class MergedColumn(Column):
     source_refs: list[SourceRef] = Field(default_factory=list)
+    # champ -> valeurs distinctes observées, quand les sources divergent.
+    # Le rendu doit afficher la divergence au lieu d'un arbitrage silencieux
+    # (`prise-de-recul.md` §7.1). Vide = sources d'accord.
+    conflicts: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class Entity(BaseModel):

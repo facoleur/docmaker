@@ -29,7 +29,9 @@ _OVERVIEW_SYSTEM = (
 def run(settings: Settings) -> None:
     model = DocModel.model_validate_json((settings.build_dir / "model.json").read_text("utf-8"))
 
-    env = Environment(loader=PackageLoader("docmaker", "templates"), trim_blocks=True, lstrip_blocks=True)
+    env = Environment(
+        loader=PackageLoader("docmaker", "templates"), trim_blocks=True, lstrip_blocks=True
+    )
     env.filters["slug"] = _slug
 
     out = settings.out_dir
@@ -41,8 +43,9 @@ def run(settings: Settings) -> None:
     known = {_key(e.name) for e in model.entities}
     records: list[dict] = []
     for ent in model.entities:
+        prefix = ent.name + "."
         conflicts = [
-            c for c in model.conflicts if c.entity == ent.name or c.entity.startswith(ent.name + ".")
+            c for c in model.conflicts if c.entity == ent.name or c.entity.startswith(prefix)
         ]
         notes = [n for n in model.notes if _key(n.table) == _key(ent.name)]
         md = table_tpl.render(
