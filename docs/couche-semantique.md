@@ -410,10 +410,11 @@ dont tout le reste dérive.
 
 ### 6.1 — L'artefact `catalog.json`
 
-Exemple complet et valide : **`exemples/catalog.example.json`** — une table de
+Spécification par la structure attendue (l'exemple JSON qui l'illustrait a été
+retiré du dépôt car il reprenait de trop près le schéma réel) : une table de
 fait partitionnée, une dimension historisée, une vue et une vue matérialisée,
-plus les synonymes et le graphe de dépendances. Il sert de spécification à
-l'étape `catalog` : ce qu'elle doit produire, champ par champ.
+plus les synonymes et le graphe de dépendances — ce que l'étape `catalog` doit
+produire, champ par champ.
 
 Trois partis pris, tous discutables mais tous conscients.
 

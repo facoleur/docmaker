@@ -89,7 +89,7 @@ ne dépendent d'aucun accès supplémentaire.
 - [ ] **Étape `catalog`** — lecture du catalogue Oracle → squelette factuel
   Tables, vues, vues matérialisées, colonnes, types, `NOT NULL`, PK, FK, index,
   partitions, synonymes, dépendances, **et les `COMMENT ON` existants**.
-  _Spécification :_ `exemples/catalog.example.json` — format exact attendu.
+  _Spécification :_ `couche-semantique.md` §6.1 — format exact attendu.
   _Conception :_ `couche-semantique.md` §6.1 (fidélité au dialecte, requêtes en
   masse, sérialisation déterministe).
   _Sortie :_ `build/catalog.json` ; modèles Pydantic dans `models.py`.
