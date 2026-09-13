@@ -40,7 +40,8 @@ def collect(sources: list[str], service: str, twb_path: str | None) -> list[Prop
         mined, unparsable_rate = mine_conventions(service)
         proposals += mined
         print(
-            f"conventions: {len(mined)} proposition(s) ({unparsable_rate:.1%} requetes non parsables par SQLGlot)"
+            f"conventions: {len(mined)} proposition(s) "
+            f"({unparsable_rate:.1%} requetes non parsables par SQLGlot)"
         )
 
     if "tableau" in sources:
@@ -63,7 +64,9 @@ def main() -> None:
     load_dotenv(ROOT / ".env")
     # force=True : une dependance (SDK OMD) configure deja un handler sur le root logger a
     # l'import, ce qui rendrait un basicConfig() normal sans effet (niveau WARNING silencieux).
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s", force=True)
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s", force=True
+    )
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -76,7 +79,10 @@ def main() -> None:
     parser.add_argument("--twb", help="Chemin du fichier .twb (requis pour la source 'tableau')")
     parser.add_argument(
         "--proposals-file",
-        help="Fichier .jsonl de Proposal deja generees (ex: sortie de src.enrich.describe) a inclure",
+        help=(
+            "Fichier .jsonl de Proposal deja generees "
+            "(ex: sortie de src.enrich.describe) a inclure"
+        ),
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="N'ecrit rien dans OMD ; affiche les propositions"

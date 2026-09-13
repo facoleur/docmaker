@@ -86,7 +86,10 @@ def _find_column(table: Table, column_fqn: str):
 
 
 def _apply_target_field(destination: Table, proposal: Proposal, column_fqn: str | None) -> bool:
-    """Mute `destination` en place : target_field + marqueur de revue + hash. False si la colonne visee n'existe pas."""
+    """Mute `destination` en place : target_field + marqueur de revue + hash.
+
+    False si la colonne visee n'existe pas.
+    """
     holder = destination
     if column_fqn:
         holder = _find_column(destination, column_fqn)

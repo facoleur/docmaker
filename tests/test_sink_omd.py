@@ -18,7 +18,8 @@ def _bot_env(monkeypatch):
 
 
 def make_table(*, updated_by=BOT_USER, extension=None, with_column=True) -> Table:
-    columns = [Column(name="COL", dataType="VARCHAR", fullyQualifiedName="svc.db.sch.T.COL")] if with_column else []
+    column = Column(name="COL", dataType="VARCHAR", fullyQualifiedName="svc.db.sch.T.COL")
+    columns = [column] if with_column else []
     return Table(
         id=str(uuid.uuid4()),
         name="T",
@@ -103,8 +104,12 @@ def test_writes_table_description_with_review_tag_and_hash():
 
 
 def test_writes_column_description():
-    proposal = make_proposal(entity_fqn="svc.db.sch.T.COL", entity_type="column", proposed_value="Statut du compte.")
-    proposal = proposal.model_copy(update={"source_hash": Proposal.compute_hash(proposal.proposed_value)})
+    proposal = make_proposal(
+        entity_fqn="svc.db.sch.T.COL", entity_type="column", proposed_value="Statut du compte."
+    )
+    proposal = proposal.model_copy(
+        update={"source_hash": Proposal.compute_hash(proposal.proposed_value)}
+    )
     client = fake_client(make_table())
     ok, reason = write_proposal(proposal, client=client)
     assert (ok, reason) == (True, "ecrit")
@@ -124,7 +129,9 @@ def test_skip_column_not_found():
 
 def test_glossary_term_uses_glossary_source():
     proposal = make_proposal(target_field="glossaryTerm", proposed_value="Glossary.Contrat")
-    proposal = proposal.model_copy(update={"source_hash": Proposal.compute_hash(proposal.proposed_value)})
+    proposal = proposal.model_copy(
+        update={"source_hash": Proposal.compute_hash(proposal.proposed_value)}
+    )
     client = fake_client(make_table())
     write_proposal(proposal, client=client)
 

@@ -29,7 +29,9 @@ from src.eval.report import dump_json, print_report  # noqa: E402
 def main() -> None:
     load_dotenv(ROOT / ".env")
 
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--service", default="DMT_INT", help="Service/datamart OMD a auditer")
     args = parser.parse_args()
 
