@@ -30,6 +30,10 @@ from src.retrieval.document import Document
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+# Poids du canal "sens" dans le melange des deux canaux. Cale sur le golden set du
+# notebook : recall@3 de 2/5 (identite seule) a 4/5. A reajuster quand le catalogue
+# sera majoritairement documente - ici 5 tables sur 101 le sont, regime tres asymetrique.
+MEANING_WEIGHT = 0.5
 INDEX_DIR = Path(__file__).resolve().parents[2] / "build" / "retrieval"
 MODEL_CACHE_DIR = Path(
     os.environ.get("DOCMAKER_MODEL_CACHE", Path.home() / ".cache" / "docmaker" / "embeddings")
@@ -85,9 +89,16 @@ class SearchHit:
 @dataclass
 class SemanticIndex:
     """Deux matrices : les identifiants deplies et, quand elle existe, la
-    documentation. Le score d'un document est le **max** des deux similarites -
-    une description qui repond fait gagner l'entite, une description hors sujet ne
-    penalise pas son nom (ce qu'un vecteur unique, qui moyenne, ferait).
+    documentation.
+
+    Score d'une entite documentee : `max(identite, melange des deux canaux)`. Les
+    deux autres fusions testees sont moins bonnes sur le golden set du notebook :
+    le melange seul (3/5) peut faire *baisser* une entite dont la description matche
+    moins bien que son nom - documenter ne devrait jamais nuire ; le max des deux
+    canaux bruts (3/5) fait dominer toute entite documentee quelle que soit la
+    question, parce qu'une phrase francaise matche mieux une question francaise que
+    des identifiants deplies. Le max du melange (4/5) est monotone sans cette
+    inflation.
     """
 
     documents: list[Document]
@@ -171,10 +182,10 @@ class SemanticIndex:
         vector = next(iter(model.embed([question])))
         vector = vector / np.linalg.norm(vector)
         documented = np.array([d.has_meaning for d in self.documents])
-        scores = np.maximum(
-            self.embeddings @ vector,
-            np.where(documented, self.meaning_embeddings @ vector, -np.inf),
-        )
+        identity_scores = self.embeddings @ vector
+        meaning_scores = self.meaning_embeddings @ vector
+        blended = (1 - MEANING_WEIGHT) * identity_scores + MEANING_WEIGHT * meaning_scores
+        scores = np.where(documented, np.maximum(identity_scores, blended), identity_scores)
 
         keep = np.ones(len(self.documents), dtype=bool)
         for position, document in enumerate(self.documents):
