@@ -15,7 +15,17 @@ formats = ["docx", "xlsx", "pptx", "pdf"]
 # Étapes exécutées, dans l'ordre. Retirer une étape pour la sauter :
 # chaque étape lit/écrit un artefact dans build/, donc rejouable seule
 # (ex. stages = ["extract", "reconcile", "render"] pour itérer sans re-convertir).
-# La passe de reconnaissance se lance seule : stages = ["recon"].
+#
+# Couche sémantique Oracle (docs/poc-qualite-service.md) : chaque étape lit
+# l'artefact de la précédente dans build/, donc l'ordre compte la première
+# fois puis chacune se relance seule, ex. stages = ["lineage"] :
+#   recon (mesure le terrain, ne produit pas de documentation)
+#   > catalog (build/catalog.json) > priority (build/priority.json)
+#   > lineage (build/lineage.json) > profile (build/profile.json)
+#   > joins (build/joins.json) > infer (semantic/model.yaml, build/entities.json)
+# Les mesures d'auto-évaluation (docmaker/eval/masking.py) et le runtime
+# (docmaker/eval/runtime.py) restent des outils invoqués à part
+# (`python -m docmaker.eval.masking`), pas des étapes de `stages`.
 stages = ["ingest", "chunk", "extract", "reconcile", "render"]
 
 [llm]
@@ -53,4 +63,18 @@ user = "compte_lecture"
 owners = []
 
 sample_views = 20   # vues tirées pour le test de parsing sqlglot
-top_n = 50          # taille des classements du rapport
+top_n = 50          # taille des classements du rapport, et du périmètre prioritaire (étape 2)
+
+[validator]
+# Le validateur SQL de l'étape 7 — non négociable, mais ne bride pas le modèle
+# (docs/poc-qualite-service.md). Compte en lecture seule supposé côté connexion.
+max_result_rows        = 1000      # FETCH FIRST n ROWS ONLY imposé à toute exécution
+query_timeout_seconds  = 30
+max_cardinality        = 5000000   # rejet si l'EXPLAIN PLAN dépasse cette cardinalité estimée
+max_attempts           = 3         # avant abstention motivée
+
+[eval]
+# Mesures d'auto-évaluation (masquage de commentaires/FK, auto-cohérence) —
+# les trois seules mesures disponibles avant d'obtenir de vraies questions métier.
+mask_sample_size      = 30    # colonnes échantillonnées pour la mesure de masquage
+similarity_threshold  = 0.5   # au-dessus : annotation jugée correcte / stable

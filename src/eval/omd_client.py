@@ -18,7 +18,7 @@ from metadata.generated.schema.security.client.openMetadataJWTClientConfig impor
 )
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 
-TABLE_FIELDS = ["owners", "tags", "columns"]
+TABLE_FIELDS = ["owners", "tags", "columns", "extension"]
 
 
 def client_from_env() -> OpenMetadata:

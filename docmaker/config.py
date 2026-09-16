@@ -51,7 +51,23 @@ class OracleConfig(_Table):
     user: str
     owners: list[str]  # vide = découverte automatique des schémas non-système
     sample_views: int  # nb de vues tirées pour le test de parsing sqlglot
-    top_n: int  # taille des classements du rapport
+    top_n: int  # taille des classements du rapport (aussi : périmètre prioritaire, étape 2)
+
+
+class ValidatorConfig(_Table):
+    """Le validateur SQL de l'étape 7 (docs/poc-qualite-service.md) — non négociable."""
+
+    max_result_rows: int  # `FETCH FIRST n ROWS ONLY` imposé à toute exécution
+    query_timeout_seconds: float
+    max_cardinality: int  # rejet si l'`EXPLAIN PLAN` estime plus de lignes que ça
+    max_attempts: int  # avant abstention motivée (jamais une réponse plausible)
+
+
+class EvalConfig(_Table):
+    """Mesures d'auto-évaluation (masquage, auto-cohérence) — étape 6/§ Le problème d'évaluation."""
+
+    mask_sample_size: int
+    similarity_threshold: float  # au-dessus : annotation jugée correcte / stable
 
 
 class Settings(BaseSettings):
@@ -77,6 +93,8 @@ class Settings(BaseSettings):
     vlm: VLMConfig
     chunk: ChunkConfig
     oracle: OracleConfig
+    validator: ValidatorConfig
+    eval: EvalConfig
 
     # Hors TOML : fournis par l'environnement ou .env.
     llm_api_key: str = ""

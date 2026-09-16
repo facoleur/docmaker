@@ -24,6 +24,7 @@ from datetime import datetime
 from typing import Any
 
 from ..config import Settings
+from ._oracle import Db, connect, in_clause
 
 log = logging.getLogger(__name__)
 
@@ -77,61 +78,12 @@ _WRITER_TYPES = {"PROCEDURE", "FUNCTION", "PACKAGE", "PACKAGE BODY", "TRIGGER", 
 
 
 # --------------------------------------------------------------------------- #
-# Accès base                                                                  #
-# --------------------------------------------------------------------------- #
-class _Db:
-    """Connexion Oracle en lecture seule, tolérante aux privilèges manquants.
-
-    Une vue `ALL_*` inaccessible n'interrompt pas la passe : elle est consignée
-    comme un manque dans le rapport — c'est en soi un résultat.
-    """
-
-    def __init__(self, conn) -> None:
-        self._conn = conn
-        self.errors: dict[str, str] = {}
-
-    def rows(self, label: str, sql: str, binds: dict | None = None) -> list[dict[str, Any]]:
-        try:
-            with self._conn.cursor() as cur:
-                cur.execute(sql, binds or {})
-                cols = [d[0].lower() for d in cur.description]
-                return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
-        except Exception as exc:  # noqa: BLE001 — on veut consigner, pas planter
-            msg = str(exc).splitlines()[0][:200]
-            log.warning("requête %s indisponible : %s", label, msg)
-            self.errors[label] = msg
-            return []
-
-    def scalar(self, label: str, sql: str, binds: dict | None = None):
-        rows = self.rows(label, sql, binds)
-        return next(iter(rows[0].values())) if rows else None
-
-
-def _in_clause(values: list[str], prefix: str) -> tuple[str, dict[str, str]]:
-    """Construit `(:p0, :p1, …)` et les binds associés (Oracle refuse une liste)."""
-    names = [f"{prefix}{i}" for i in range(len(values))]
-    return "(" + ", ".join(f":{n}" for n in names) + ")", dict(zip(names, values, strict=True))
-
-
-# --------------------------------------------------------------------------- #
 # Étape                                                                       #
 # --------------------------------------------------------------------------- #
 def run(settings: Settings) -> None:
-    try:
-        import oracledb
-    except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("dépendance manquante : `poetry add oracledb`") from exc
-
     cfg = settings.oracle
-    if not settings.oracle_password:
-        raise RuntimeError("ORACLE_PASSWORD absent de l'environnement (ou du .env)")
-
-    log.info("connexion à %s (mode thin) …", cfg.dsn)
-    conn = oracledb.connect(user=cfg.user, password=settings.oracle_password, dsn=cfg.dsn)
-    try:
-        report = _collect(_Db(conn), cfg)
-    finally:
-        conn.close()
+    with connect(cfg, settings.oracle_password) as db:
+        report = _collect(db, cfg)
 
     (settings.build_dir / "recon.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
@@ -141,7 +93,7 @@ def run(settings: Settings) -> None:
     log.info("rapport : %s", settings.build_dir / "recon.md")
 
 
-def _collect(db: _Db, cfg) -> dict[str, Any]:
+def _collect(db: Db, cfg) -> dict[str, Any]:
     rep: dict[str, Any] = {"generated_at": datetime.now().isoformat(timespec="seconds")}
     rep["db_version"] = db.scalar(
         "version",
@@ -163,7 +115,7 @@ def _collect(db: _Db, cfg) -> dict[str, Any]:
         rep["errors"] = db.errors
         return rep
     log.info("périmètre : %s", ", ".join(owners))
-    where, binds = _in_clause(owners, "o")
+    where, binds = in_clause(owners, "o")
 
     rep["columns"] = db.rows(
         "colonnes",
@@ -261,7 +213,7 @@ def _collect(db: _Db, cfg) -> dict[str, Any]:
     return rep
 
 
-def _discover_owners(db: _Db, inventory: list[dict]) -> list[str]:
+def _discover_owners(db: Db, inventory: list[dict]) -> list[str]:
     """Schémas applicatifs : `oracle_maintained` si disponible, sinon liste noire."""
     rows = db.rows(
         "schémas applicatifs",
@@ -310,7 +262,7 @@ def _blind_spot(all_tables: list[dict], deps: list[dict]) -> dict[str, int]:
     }
 
 
-def _parse_test(db: _Db, owners: list[str], sample: int) -> dict[str, Any]:
+def _parse_test(db: Db, owners: list[str], sample: int) -> dict[str, Any]:
     """Tire un échantillon de vues réparti par taille et le passe à sqlglot."""
     try:
         import sqlglot
@@ -318,7 +270,7 @@ def _parse_test(db: _Db, owners: list[str], sample: int) -> dict[str, Any]:
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("dépendance manquante : `poetry add sqlglot`") from exc
 
-    where, binds = _in_clause(owners, "o")
+    where, binds = in_clause(owners, "o")
     catalog = db.rows(
         "vues",
         f"SELECT owner, view_name, text_length FROM all_views WHERE owner IN {where} "
