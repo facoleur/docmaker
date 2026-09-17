@@ -5,14 +5,14 @@ Plan d'implémentation. Contexte dans `couche-semantique.md`.
 
 ## Cadre
 
-| | |
-| --- | --- |
+|           |                                                                      |
+| --------- | -------------------------------------------------------------------- |
 | Périmètre | Domaine Qualité de service, datamart(s) rafraîchi(s) quotidiennement |
-| Échelle | **Centaines de tables**, milliers de colonnes, schéma en flocon |
-| Moyens | Seul, quelques semaines |
-| Modèle | ≤ 30B on-prem, runtime compris |
-| Public | Managers Data Intel + DBA du projet QoS |
-| Base | Oracle, accès lecture acquis |
+| Échelle   | **Centaines de tables**, milliers de colonnes, schéma en flocon      |
+| Moyens    | Seul, quelques semaines                                              |
+| Modèle    | ≤ 30B on-prem, runtime compris                                       |
+| Public    | Managers Data Intel + DBA du projet QoS                              |
+| Base      | Oracle, accès lecture acquis                                         |
 
 **Contraintes fermes :**
 
@@ -88,13 +88,13 @@ FK déclarées (décide de la taille du jeu de la mesure 2).
 Sans logs de requêtes ni questions connues, il faut un classement de centralité,
 sinon l'annotation LLM part sur des centaines de tables indifféremment.
 
-| Signal | Source | Ce qu'il approche |
-| --- | --- | --- |
-| Exposition | `ALL_TAB_PRIVS` | objets donnés en lecture aux rôles de restitution → **le meilleur proxy disponible** |
-| Activité de chargement | `ALL_TAB_MODIFICATIONS` | ce qui vit vs. ce qui est figé — très discriminant sur un datamart quotidien |
-| Fan-out | `ALL_DEPENDENCIES` | centralité structurelle |
-| Volume | `NUM_ROWS` | faits vs. reliquats |
-| Fraîcheur | `LAST_ANALYZED`, partitions | ce qui est encore alimenté |
+| Signal                 | Source                      | Ce qu'il approche                                                                    |
+| ---------------------- | --------------------------- | ------------------------------------------------------------------------------------ |
+| Exposition             | `ALL_TAB_PRIVS`             | objets donnés en lecture aux rôles de restitution → **le meilleur proxy disponible** |
+| Activité de chargement | `ALL_TAB_MODIFICATIONS`     | ce qui vit vs. ce qui est figé — très discriminant sur un datamart quotidien         |
+| Fan-out                | `ALL_DEPENDENCIES`          | centralité structurelle                                                              |
+| Volume                 | `NUM_ROWS`                  | faits vs. reliquats                                                                  |
+| Fraîcheur              | `LAST_ANALYZED`, partitions | ce qui est encore alimenté                                                           |
 
 **Sortie** `build/priority.json` — un score par table, chaque signal conservé
 séparément (un score agrégé opaque n'est pas défendable devant un DBA).
@@ -128,12 +128,12 @@ explicitement marquée** — jamais de couverture implicitement complète.
 
 ## Étape 4 — Mesures déterministes
 
-| Passe | Méthode | Alimente |
-| --- | --- | --- |
-| Domaines de valeurs | `ALL_TAB_COL_STATISTICS` + `ALL_TAB_HISTOGRAMS` d'abord ; scan `GROUP BY` ciblé seulement si stats absentes/périmées **et** table prioritaire | dictionnaires code → libellé |
-| Maille | `COUNT(*) = COUNT(DISTINCT clé)` | `grain`, faux-amis de nommage |
-| Jointures | inclusion `A.X ⊆ B.X` + unicité de chaque côté | arêtes **et cardinalité** |
-| Dernier lot | colonne de date de chargement → `MAX` | filtre par défaut de fraîcheur |
+| Passe               | Méthode                                                                                                                                       | Alimente                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Domaines de valeurs | `ALL_TAB_COL_STATISTICS` + `ALL_TAB_HISTOGRAMS` d'abord ; scan `GROUP BY` ciblé seulement si stats absentes/périmées **et** table prioritaire | dictionnaires code → libellé   |
+| Maille              | `COUNT(*) = COUNT(DISTINCT clé)`                                                                                                              | `grain`, faux-amis de nommage  |
+| Jointures           | inclusion `A.X ⊆ B.X` + unicité de chaque côté                                                                                                | arêtes **et cardinalité**      |
+| Dernier lot         | colonne de date de chargement → `MAX`                                                                                                         | filtre par défaut de fraîcheur |
 
 Sur des centaines de tables, les passes 2 et 3 ne se lancent **que sur le périmètre
 prioritaire** (étape 2) — le test d'inclusion est quadratique en nombre de couples
@@ -172,20 +172,20 @@ ne construit pas — cohérent avec `couche-semantique.md` §3.
 ```yaml
 # semantic/model.yaml — généré, puis amendé par la revue
 entities:
-  incident:                      # nom proposé par LLM, validé par un humain
+  incident: # nom proposé par LLM, validé par un humain
     root: DMT.DMT_F_QOS_INC
     satellites: [DMT.DMT_F_QOS_INC_DET, REF.REF_D_QOS_TYP]
-    grain: "un incident déclaré"           # étape 4
+    grain: "un incident déclaré" # étape 4
     key: ID_INC
     confidence: 0.82
     evidence: [lineage:3_jointures, inclusion:verifiee, package:PKG_CHG_QOS]
-    default_filters:                       # inférés, à valider
+    default_filters: # inférés, à valider
       - "FLG_ACT = 1"
       - "DT_CHG = (SELECT MAX(DT_CHG) FROM DMT.DMT_F_QOS_INC)"
     dimensions:
-      statut: {expr: STA_INC, values: {OUV: Ouvert, RES: Résolu}}
+      statut: { expr: STA_INC, values: { OUV: Ouvert, RES: Résolu } }
     measures:
-      nb_incidents: {expr: "COUNT(*)"}
+      nb_incidents: { expr: "COUNT(*)" }
 ```
 
 **Sortie** `semantic/model.yaml` + `build/entities.json` (candidats avec preuves)
@@ -265,7 +265,7 @@ vectorielle ne se justifie que si cette mesure montre que le routage échoue.
 5. `EXPLAIN PLAN` — cardinalité estimée aberrante ⇒ rejet ;
 6. exécution : compte en lecture seule, `FETCH FIRST n ROWS ONLY`, timeout.
 
-Après *n* échecs : **abstention motivée**, jamais une réponse plausible.
+Après _n_ échecs : **abstention motivée**, jamais une réponse plausible.
 
 **Le jeu de questions, dès qu'il est obtenable.** Les rapports existants du domaine
 sont la seule source traçable : un rapport produit chaque mois est une question que
@@ -332,16 +332,16 @@ Dépendances déjà présentes : `oracledb`, `sqlglot`, `pydantic`, `openai`,
 
 ## Ordre
 
-| # | Étape | Pourquoi là |
-| --- | --- | --- |
-| 1 | 1 — recon + catalogue | Rien ne le bloque, et ses chiffres décident de tout le reste |
-| 2 | 2 — priorisation | Sans elle l'annotation part dans toutes les directions |
-| 3 | 3 — lineage | Le gisement de sens ; conditionné au taux de parsing de l'étape 1 |
-| 4 | 4 — mesures | Sur le périmètre prioritaire seulement |
-| 5 | 6 — annotation + OMD + **mesure par masquage** | Premier chiffre de qualité réel |
-| 6 | 5 — inférence sémantique | Demande le lineage et les jointures |
-| 7 | 7 — runtime + validateur | Le validateur avant le reste : peu de code, gros rendement |
-| 8 | 8 — démo | |
+| #   | Étape                                          | Pourquoi là                                                       |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | 1 — recon + catalogue                          | Rien ne le bloque, et ses chiffres décident de tout le reste      |
+| 2   | 2 — priorisation                               | Sans elle l'annotation part dans toutes les directions            |
+| 3   | 3 — lineage                                    | Le gisement de sens ; conditionné au taux de parsing de l'étape 1 |
+| 4   | 4 — mesures                                    | Sur le périmètre prioritaire seulement                            |
+| 5   | 6 — annotation + OMD + **mesure par masquage** | Premier chiffre de qualité réel                                   |
+| 6   | 5 — inférence sémantique                       | Demande le lineage et les jointures                               |
+| 7   | 7 — runtime + validateur                       | Le validateur avant le reste : peu de code, gros rendement        |
+| 8   | 8 — démo                                       |                                                                   |
 
 Si le temps manque : **le catalogue, le lineage, l'annotation mesurée par masquage et
 le catalogue OMD peuplé** constituent déjà un livrable défendable devant les deux
@@ -351,12 +351,12 @@ publics, sans runtime.
 
 ## Risques
 
-| Risque | Parade |
-| --- | --- |
-| Aucun `COMMENT ON` dans la base | La mesure 1 disparaît → se rabattre sur le masquage de FK et l'auto-cohérence. Mesuré à l'étape 1 |
-| Taux de parsing `sqlglot` faible | Le lineage colonne s'effondre → replier sur `ALL_DEPENDENCIES` (niveau table) et le profiling. Mesuré à l'étape 1 |
-| Test d'inclusion trop coûteux | Le restreindre au top-N prioritaire ; échantillonner avant de tester exhaustivement |
-| Le clustering produit une entité par table | Le signal de jointure est trop faible → se rabattre sur les conventions de nommage, en le marquant comme dégradé |
-| Budget de contexte dépassé | Mesuré à l'étape 7 ; c'est seulement là que la question du retrieval se pose |
-| Le 30B sature sur des centaines d'entités | Réduire le sommaire aux entités prioritaires, mesurer la dégradation |
-| Les rapports existants n'arrivent jamais | Le POC reste pilotable par les trois mesures d'auto-évaluation |
+| Risque                                     | Parade                                                                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Aucun `COMMENT ON` dans la base            | La mesure 1 disparaît → se rabattre sur le masquage de FK et l'auto-cohérence. Mesuré à l'étape 1                 |
+| Taux de parsing `sqlglot` faible           | Le lineage colonne s'effondre → replier sur `ALL_DEPENDENCIES` (niveau table) et le profiling. Mesuré à l'étape 1 |
+| Test d'inclusion trop coûteux              | Le restreindre au top-N prioritaire ; échantillonner avant de tester exhaustivement                               |
+| Le clustering produit une entité par table | Le signal de jointure est trop faible → se rabattre sur les conventions de nommage, en le marquant comme dégradé  |
+| Budget de contexte dépassé                 | Mesuré à l'étape 7 ; c'est seulement là que la question du retrieval se pose                                      |
+| Le 30B sature sur des centaines d'entités  | Réduire le sommaire aux entités prioritaires, mesurer la dégradation                                              |
+| Les rapports existants n'arrivent jamais   | Le POC reste pilotable par les trois mesures d'auto-évaluation                                                    |
