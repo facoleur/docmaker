@@ -1,6 +1,6 @@
 # docmaker — todolist
 
-Dernière mise à jour : 2026-09-11.
+Dernière mise à jour : 2026-09-17.
 Doc de référence : `couche-semantique.md` (le quoi et le pourquoi). Celui-ci est
 le **quoi faire, dans quel ordre**.
 
@@ -86,14 +86,16 @@ en semaines, pas en minutes.
 Ordre choisi pour que chaque étape ait de la valeur seule, et que les premières
 ne dépendent d'aucun accès supplémentaire.
 
-- [ ] **Étape `catalog`** — lecture du catalogue Oracle → squelette factuel
+- [x] **Étape `catalog`** — lecture du catalogue Oracle → squelette factuel
   Tables, vues, vues matérialisées, colonnes, types, `NOT NULL`, PK, FK, index,
   partitions, synonymes, dépendances, **et les `COMMENT ON` existants**.
   _Spécification :_ `couche-semantique.md` §6.1 — format exact attendu.
   _Conception :_ `couche-semantique.md` §6.1 (fidélité au dialecte, requêtes en
   masse, sérialisation déterministe).
   _Sortie :_ `build/catalog.json` ; modèles Pydantic dans `models.py`.
-  _Critères :_
+  _Code :_ `docmaker/pipeline/catalog.py` — **écrit, jamais exécuté contre un
+  Oracle réel** (pas d'accès disponible dans l'environnement de dev). Les
+  critères ci-dessous restent donc à vérifier sur le premier run réel :
   - le nombre de colonnes correspond exactement à la §1 du rapport `recon` ;
   - zéro appel LLM, zéro écriture en base ;
   - deux exécutions successives produisent un fichier **identique à l'octet**
@@ -107,35 +109,42 @@ ne dépendent d'aucun accès supplémentaire.
   _Critère :_ les 150 premiers tokens couvrent > 80 % des occurrences.
   - [ ] 👤 Faire valider le glossaire (une heure, une personne)
 
-- [ ] **Étape `lineage`** — parsing des vues, MV et PL/SQL
+- [x] **Étape `lineage`** — parsing des vues, MV et PL/SQL
   ⛔ Dépend du verdict §6 de la reconnaissance.
   1. `ALL_DEPENDENCIES` d'abord : graphe table à table, gratuit, sans parsing.
   2. `sqlglot` ensuite pour descendre au niveau colonne (expression de calcul).
   3. Extraire au passage le graphe de jointures et sa fréquence.
   _Sortie :_ `build/lineage.json` — par colonne : expression, colonnes amont,
   objet source ; plus le graphe de jointures pondéré.
+  _Code :_ `docmaker/pipeline/lineage.py` — **écrit, jamais exécuté**. Limité
+  aux vues/MV (les procédures/PL/SQL dynamique restent hors périmètre, voir
+  son docstring). Le taux de parsing (`parse_stats`) accompagne toujours le
+  résultat — jamais de couverture implicitement complète.
   _Critère :_ pour 10 colonnes dérivées tirées au hasard, l'expression remontée
-  correspond au texte de la vue, vérifié à la main.
-  - [ ] Marquer explicitement la part non parsée — ne jamais laisser croire à
-        une couverture complète.
+  correspond au texte de la vue, vérifié à la main. **Non vérifié faute de
+  données réelles.**
 
-- [ ] **Étape `profile`** — domaines de valeurs
+- [x] **Étape `profile`** — domaines de valeurs
   1. D'abord `ALL_TAB_COL_STATISTICS` et `ALL_TAB_HISTOGRAMS` : gratuit, aucun
      scan. Décoder les `RAW` avec `DBMS_STATS.CONVERT_RAW_VALUE`.
   2. Scans `GROUP BY` ciblés seulement là où les stats manquent ou sont périmées,
      et uniquement sur le périmètre prioritaire.
   _Sortie :_ `build/profile.json` — par colonne : distincts, nulls, min/max, top-N.
+  _Code :_ `docmaker/pipeline/profile.py` — **écrit, jamais exécuté**. Ajoute
+  aussi la maille (`COUNT(*) = COUNT(DISTINCT clé)`) et le dernier lot chargé,
+  prévus dans `couche-semantique.md` mais pas détaillés comme items séparés ici.
   _Critère :_ les colonnes de code du périmètre prioritaire ont toutes un domaine
-  de valeurs, ou une raison explicite de ne pas en avoir.
+  de valeurs, ou une raison explicite de ne pas en avoir. **Non vérifié.**
 
-- [ ] **Étape `joins`** — retrouver les clés étrangères non déclarées
+- [x] **Étape `joins`** — retrouver les clés étrangères non déclarées
   Test d'inclusion `FACT.X ⊆ DIM.X` sur les couples candidats (nom identique ou
   proche, type et cardinalité compatibles), croisé avec les jointures observées
   dans le lineage.
   _Sortie :_ `build/joins.json` — chaque arête avec son statut : déclarée,
   observée dans le SQL, vérifiée par inclusion.
+  _Code :_ `docmaker/pipeline/joins.py` — **écrit, jamais exécuté**.
   _Critère :_ chaque table de fait du périmètre prioritaire a au moins un chemin
-  vers ses dimensions, marqué du niveau de preuve.
+  vers ses dimensions, marqué du niveau de preuve. **Non vérifié.**
 
 - [ ] **Étape `tableau`** — parsing des classeurs
   ⛔ Dépend de la phase 1. Extraire : `caption` (libellés humains ↔ colonnes
@@ -145,11 +154,14 @@ ne dépendent d'aucun accès supplémentaire.
   _Critère :_ chaque `caption` extrait est rattaché à une colonne existante du
   `catalog`, ou signalé comme non résolu.
 
-- [ ] **Priorisation** — le classement qui remplace les logs
+- [x] **Priorisation** — le classement qui remplace les logs
   Combiner : fan-out `ALL_DEPENDENCIES`, `ALL_TAB_PRIVS`, `ALL_TAB_MODIFICATIONS`,
   `NUM_ROWS`, et surtout la couverture Tableau.
   _Sortie :_ `build/priority.json` — un score par table.
-  _Critère :_ le top 50 est jugé plausible par l'interlocuteur métier.
+  _Code :_ `docmaker/pipeline/priority.py` — **écrit, jamais exécuté**. Ne
+  combine pas encore la couverture Tableau (§2.8), qui reste à obtenir (phase 1).
+  _Critère :_ le top 50 est jugé plausible par l'interlocuteur métier. **Non
+  vérifiable sans interlocuteur ni données réelles.**
 
 ---
 
@@ -164,11 +176,16 @@ d'architecture qui restent.
   2. Compléter depuis le schéma pour couvrir les trous.
   _Sortie :_ `eval/questions.yaml`.
 
-- [ ] **Auto-vérifier ce qui est vérifiable seul**
+- [~] **Auto-vérifier ce qui est vérifiable seul**
   Ce qu'on peut contrôler sans personne : la jointure fait-elle exploser le
   nombre de lignes, la clé est-elle unique (`COUNT(DISTINCT) = COUNT(*)`), les
   volumes sont-ils plausibles, deux calculs de la même métrique concordent-ils.
+  _Code :_ couvert en amont par `docmaker/pipeline/joins.py` (unicité, maille)
+  et par `docmaker/eval/masking.py` (masquage de commentaires/FK, auto-cohérence
+  — voir `docs/poc-qualite-service.md` § « Le problème d'évaluation »). Ce sont
+  des **substituts** en l'absence de questions métier, pas ce critère lui-même.
   _Critère :_ toutes les requêtes tournent et rendent un résultat non vide.
+  **Non vérifié.**
 
 - [ ] 👤 **Faire corriger, pas écrire**
   Demander « corrige-moi ces 30 brouillons », jamais « écris-moi 30 questions ».
@@ -199,13 +216,19 @@ d'architecture qui restent.
 ⛔ Ne pas commencer avant la phase 2 : le LLM doit **nommer**, pas construire, et
 il ne peut nommer qu'ancré sur des preuves.
 
-- [ ] **Étape `annotate`**
+- [~] **Étape `annotate`**
   Un appel par colonne du périmètre prioritaire, avec en contexte : l'expression
   de calcul (lineage), les valeurs observées (profile), les tokens décodés
   (glossary), le `caption` Tableau s'il existe, le `COMMENT ON` s'il existe, et
   les passages de documentation rattachés.
+  _Décision (`poc-qualite-service.md` étape 6) :_ pas de nouvelle étape dans
+  `docmaker/pipeline` — la chaîne existante (`src/enrich/describe.py` →
+  `src/sink/omd.py`) est réutilisée telle quelle. Ce qui manquait, la boucle de
+  retour (relire les corrections humaines dans OMD), est maintenant écrit :
+  `src/sources/omd_feedback.py`.
   _Critère :_ « preuve insuffisante » est une réponse acceptable et effectivement
   rendue quand c'est le cas — mesurer ce taux, un taux nul est un signal d'alarme.
+  Mesurable via `docmaker/eval/masking.py` (`refusal_rate`), non exécuté.
 
 - [ ] **Adapter `extract`** aux documents Office
   Vocabulaire fermé issu du `catalog` : rattacher une phrase à une table connue,
@@ -232,10 +255,14 @@ il ne peut nommer qu'ancré sur des preuves.
   en custom properties, lineage en relations.
   ⛔ Dépend de : OpenMetadata est-il déployé, alimenté, par quel connecteur ?
 
-- [ ] **Livrable text-to-SQL**
+- [~] **Livrable text-to-SQL**
   Graphe de jointures avec chemin canonique · dictionnaires de valeurs ·
   définitions de métriques avec leur maille · exemples few-shot issus de la
   phase 3. Voir `couche-semantique.md` §1.
+  _Code :_ le socle est écrit — `docmaker/semantic/prompt.py` (budget de
+  contexte à deux niveaux), `docmaker/semantic/validate.py` (le validateur non
+  négociable), `docmaker/eval/runtime.py` (dispatch par régime + abstention).
+  Il manque encore les exemples few-shot (phase 3) et tout run réel.
 
 ---
 

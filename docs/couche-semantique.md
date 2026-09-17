@@ -399,11 +399,14 @@ comme indisponible** et on s'appuie sur les substituts du §2.5.
 | `extract` | Conservé mais **contraint** : rattachement à un vocabulaire fermé issu du catalogue, plus de génération de noms de tables. |
 | `reconcile` / `conflicts` | Fortement réduits : le catalogue tranche, les documents annotent. |
 | `render` | Devient multi-backend depuis `model.json` : Markdown, `chunks.jsonl`, payload OpenMetadata, **modèle sémantique Cube** (§8.6). |
-| **`catalog`** (nouveau) | Lecture du catalogue → squelette factuel. |
-| **`lineage`** (nouveau) | Parsing des vues / procédures via `sqlglot` → expressions, graphe de jointures, graphe de flux. |
-| **`profile`** (nouveau) | Profiling de valeurs + tests d'inclusion. |
-| **`glossary`** (nouveau) | Dictionnaire d'abréviations miné puis validé. |
-| **`annotate`** (nouveau) | Appel LLM de nommage, ancré sur les preuves des étapes ci-dessus. |
+| **`catalog`** | Lecture du catalogue → squelette factuel. Écrit (`docmaker/pipeline/catalog.py`), jamais exécuté. |
+| **`priority`** | Classement de centralité (§2.5), signaux séparés. Écrit (`docmaker/pipeline/priority.py`), jamais exécuté. |
+| **`lineage`** | Parsing des vues via `sqlglot` → expressions, graphe de jointures. Écrit (`docmaker/pipeline/lineage.py`), jamais exécuté ; les procédures/packages (SQL dynamique) restent hors périmètre, voir son docstring. |
+| **`profile`** / **`joins`** | Profiling de valeurs + tests d'inclusion. Écrits (`docmaker/pipeline/profile.py`, `joins.py`), jamais exécutés. |
+| **`glossary`** (nouveau) | Dictionnaire d'abréviations miné puis validé. Non commencé. |
+| **`annotate`** | Appel LLM de nommage, ancré sur les preuves des étapes ci-dessus. Chaîne existante réutilisée (`src/enrich/describe.py` → `src/sink/omd.py`) plutôt qu'une nouvelle étape ; boucle de retour désormais écrite (`src/sources/omd_feedback.py`). |
+| **inférence sémantique** (nouveau) | Clustering du graphe de jointures → entités candidates, le LLM ne fait que nommer. Écrit (`docmaker/semantic/infer.py`, `model.py`), jamais exécuté. |
+| **validateur + runtime** (nouveau) | Voir `docs/poc-qualite-service.md` étape 7. Écrits (`docmaker/semantic/validate.py`, `prompt.py`, `docmaker/eval/runtime.py`), jamais exécutés. |
 
 Dépendance à ajouter : `sqlglot`. Le pivot reste `model.json`, source unique
 dont tout le reste dérive.
@@ -662,6 +665,13 @@ Conséquences immédiates, faibles par construction :
 
 ## 9. Journal des révisions
 
+- **2026-09-17** — Implémentation du POC (`docs/poc-qualite-service.md`) :
+  `catalog`, `priority`, `lineage`, `profile`, `joins` dans `docmaker/pipeline/` ;
+  inférence sémantique et validateur dans `docmaker/semantic/` ; mesures
+  d'auto-évaluation et runtime par régime dans `docmaker/eval/` ; boucle de
+  retour OMD dans `src/sources/omd_feedback.py`. §6 mis à jour en conséquence.
+  Rien n'a tourné contre un Oracle réel — voir l'état d'avancement en tête de
+  `poc-qualite-service.md`.
 - **2026-09-11** — Ajout du §8 : comparatif des couches sémantiques
   (catalogues, semantic layers, agents text-to-SQL) et orientation vers **Cube**
   comme cible de projection, `model.json` restant le pivot neutre. Conséquences :

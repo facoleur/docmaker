@@ -33,6 +33,36 @@ principe), le banc Oracle simulé de `openmetadata/database/`.
 
 ---
 
+## État d'avancement (2026-09-17)
+
+Le code de chaque étape ci-dessous est écrit et testé unitairement sur sa
+logique pure (clustering, priorisation, validateur, masquage — voir
+`tests/`). **Rien n'a encore tourné contre un Oracle réel** : l'environnement
+de développement où ce code a été écrit n'a ni les dépendances installées
+(`poetry`/`pip` indisponibles) ni d'accès au datamart. Chaque artefact décrit
+dans ce document reste donc une hypothèse de format tant que l'étape 1 n'a pas
+tourné pour de vrai.
+
+| Étape | État | Fichiers |
+| --- | --- | --- |
+| 1 — recon | Écrit, jamais exécuté | `docmaker/pipeline/recon.py` |
+| 1 — catalogue | Écrit, jamais exécuté | `docmaker/pipeline/catalog.py` |
+| 2 — priorisation | Écrit, jamais exécuté | `docmaker/pipeline/priority.py` |
+| 3 — lineage | Écrit, jamais exécuté | `docmaker/pipeline/lineage.py` |
+| 4 — mesures déterministes | Écrit, jamais exécuté | `docmaker/pipeline/profile.py`, `docmaker/pipeline/joins.py` |
+| 5 — inférence sémantique | Écrit, jamais exécuté | `docmaker/semantic/infer.py`, `docmaker/semantic/model.py` |
+| 6 — annotation + OMD | Chaîne existante réutilisée (`src/enrich/describe.py`, `src/sink/omd.py`) ; boucle de retour désormais écrite | `src/sources/omd_feedback.py` |
+| 6 — mesure par masquage | Écrit, jamais exécuté (les 3 mesures du § suivant) | `docmaker/eval/masking.py` |
+| 7 — runtime + validateur | Écrit, jamais exécuté | `docmaker/semantic/prompt.py`, `docmaker/semantic/validate.py`, `docmaker/eval/runtime.py` |
+| 8 — démo | Non commencé — dépend d'un accès Oracle réel | — |
+
+Non couvert par ce tour d'implémentation, toujours à faire : le dictionnaire
+d'abréviations (§2.6 de `couche-semantique.md`), le parsing des classeurs
+Tableau (§2.8), et bien sûr le jeu de questions métier (§7 bis) sans lequel
+aucune de ces mesures ne remplace un vrai critère d'acceptation.
+
+---
+
 ## Le problème d'évaluation, et sa solution
 
 Sans questions métier connues, rien ne dit si le système progresse. Trois mesures

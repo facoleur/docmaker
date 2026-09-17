@@ -1,8 +1,33 @@
 # docmaker — état du projet & suite
 
-Document d'onboarding. Dernière mise à jour : 2026-09-07.
+Document d'onboarding. Dernière mise à jour : 2026-09-07 (partie v1 ci-dessous,
+inchangée) — voir la mise à jour du 2026-09-17 juste en dessous pour le
+périmètre actuel du projet.
 À lire en premier, puis `decisions.md` (choix détaillés) et `architecture-review.md`
-(archi cible, risques, benchmark, glossaire).
+(archi cible, risques, benchmark, glossaire) pour le v1 documentaire ; puis
+`couche-semantique.md` et `poc-qualite-service.md` pour le pivot Oracle.
+
+---
+
+## Mise à jour 2026-09-17 — pivot vers une couche sémantique Oracle
+
+Depuis le 2026-09-10, le projet ne vise plus seulement le pipeline documentaire
+décrit ci-dessous : il porte aussi la construction d'une **couche sémantique
+automatisée** sur un datamart Oracle (domaine Qualité de service), détaillée
+dans `couche-semantique.md` (le contexte) et `poc-qualite-service.md` (le plan
+d'implémentation concret, avec son propre suivi d'avancement en tête de doc).
+
+Ajouté depuis, tout sous `docmaker/pipeline/` (`catalog.py`, `priority.py`,
+`lineage.py`, `profile.py`, `joins.py`), `docmaker/semantic/` (inférence
+d'entités, budget de contexte, validateur SQL), `docmaker/eval/` (mesures
+d'auto-évaluation par masquage, runtime par régime) et
+`src/sources/omd_feedback.py` (boucle de retour OMD manquante). **Rien de tout
+ça n'a encore tourné contre un Oracle réel** — voir l'état d'avancement détaillé
+dans `poc-qualite-service.md`.
+
+Le pipeline documentaire v1 décrit ci-dessous reste en l'état (`ingest`,
+`chunk`, `extract`, `reconcile`, `render`) ; les deux arbres cohabitent dans
+`docmaker/` (voir `couche-semantique.md` §6 pour ce qui change pour lui).
 
 ---
 
